@@ -223,13 +223,13 @@ const App: React.FC = () => {
                  
                  {/* 6. Zodiac (1x1) */}
                  <div className="col-span-1 lg:col-span-1 min-h-[140px]">
-                     <ZodiacWidget dob={new Date(profile.dob)} onShare={(t, data) => openShare("My Zodiac", `I am a ${data.sign}`, undefined, 'zodiac', data)} />
+                     <ZodiacWidget dob={new Date(profile.dob)} onShare={(_, data) => openShare("My Zodiac", `I am a ${data.sign}`, undefined, 'zodiac', data)} />
                  </div>
 
                  {/* 7. Day Born (1x1) */}
                  {/* This was pushed out of alignment in previous, can fit here or new row */}
                  <div className="col-span-1 lg:col-span-1 min-h-[140px]">
-                     <DayBornWidget dob={new Date(profile.dob)} onShare={(t, data) => openShare("Born On", `I was born on a ${data.sign}`, undefined, 'zodiac', data)} />
+                     <DayBornWidget dob={new Date(profile.dob)} onShare={(_, data) => openShare("Born On", `I was born on a ${data.sign}`, undefined, 'zodiac', data)} />
                  </div>
 
              </div>
