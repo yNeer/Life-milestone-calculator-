@@ -35,7 +35,7 @@ const ShareModal: React.FC<Props> = ({
     allMilestones = [], cardType = 'milestone', extraData = {} 
 }) => {
   // --- State ---
-  const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16'>('9:16'); // Default to story format for video
+  const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16'>('9:16'); 
   const [formatType, setFormatType] = useState<'image' | 'video'>(cardType === 'age' ? 'video' : 'image');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('png');
   const [videoStyle, setVideoStyle] = useState<VideoStyle>('cinematic');
@@ -147,6 +147,9 @@ const ShareModal: React.FC<Props> = ({
       const c3 = c1 + 1;
       return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
   };
+  const easeInOutQuad = (x: number): number => {
+      return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+  };
 
   const handleGenerateVideo = async () => {
       setIsGenerating(true);
@@ -161,12 +164,24 @@ const ShareModal: React.FC<Props> = ({
 
       // Stats
       const ageStats = (extraData as any) || {};
-      const targetSeconds = ageStats.seconds || 0;
-      const targetYears = ageStats.years || 0;
+      const { 
+          years = 0, months = 0, weeks = 0, days = 0, 
+          hours = 0, minutes = 0, seconds = 0 
+      } = ageStats;
+
+      const statItems = [
+          { label: 'Years', value: years, delayPct: 0.15 },
+          { label: 'Months', value: months, delayPct: 0.25 },
+          { label: 'Weeks', value: weeks, delayPct: 0.35 },
+          { label: 'Days', value: days, delayPct: 0.45 },
+          { label: 'Hours', value: hours, delayPct: 0.55 },
+          { label: 'Minutes', value: minutes, delayPct: 0.65 },
+          // Seconds is special (Main Finale)
+      ];
 
       // Setup Recorder
       const stream = canvas.captureStream(60); // 60 FPS
-      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 5000000 });
+      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 8000000 });
       const chunks: Blob[] = [];
       recorder.ondataavailable = (e) => chunks.push(e.data);
       recorder.onstop = () => {
@@ -185,10 +200,6 @@ const ShareModal: React.FC<Props> = ({
       // Animation Constants
       const fps = 60;
       const totalFrames = videoDuration * fps;
-      
-      // Timeline Config (Percentages of video)
-      const introEndPct = 0.15; // First 15% is entrance
-      const rollingEndPct = 0.25; // Numbers stop rolling at 25%
       
       // Particle System
       const particles = Array.from({ length: 70 }, () => ({
@@ -212,11 +223,11 @@ const ShareModal: React.FC<Props> = ({
 
           const progress = frame / totalFrames; // 0 to 1
           
-          // Clear
+          // Clear & Background
           ctx.clearRect(0,0,w,h);
-
-          // 1. DRAW BACKGROUND
           ctx.save();
+          
+          // --- 1. Background Styles ---
           if (videoStyle === 'cinematic') {
               const grad = ctx.createLinearGradient(0, 0, w, h);
               grad.addColorStop(0, '#0f172a');
@@ -224,7 +235,6 @@ const ShareModal: React.FC<Props> = ({
               ctx.fillStyle = grad;
               ctx.fillRect(0, 0, w, h);
               
-              // Gold Dust
               particles.forEach(p => {
                   p.y -= 0.5;
                   if (p.y < 0) p.y = h;
@@ -238,17 +248,13 @@ const ShareModal: React.FC<Props> = ({
                ctx.fillStyle = '#050505';
                ctx.fillRect(0, 0, w, h);
                
-               // Grid
                ctx.strokeStyle = 'rgba(236, 72, 153, 0.15)';
                ctx.lineWidth = 2;
                const gridSize = 100;
                const offset = (frame * 2) % gridSize;
-               
-               // Vertical
                for (let i = 0; i <= w; i += gridSize) {
                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
                }
-               // Horizontal Moving
                for (let i = offset; i <= h; i += gridSize) {
                     ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke();
                }
@@ -256,8 +262,6 @@ const ShareModal: React.FC<Props> = ({
           else if (videoStyle === 'minimal') {
               ctx.fillStyle = '#ffffff';
               ctx.fillRect(0, 0, w, h);
-              
-              // Subtle gradient blob
               const grad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w);
               grad.addColorStop(0, 'rgba(79, 70, 229, 0.05)');
               grad.addColorStop(1, 'rgba(255,255,255,0)');
@@ -270,8 +274,6 @@ const ShareModal: React.FC<Props> = ({
               grad.addColorStop(1, '#000000');
               ctx.fillStyle = grad;
               ctx.fillRect(0,0,w,h);
-
-              // Stars
               particles.forEach(p => {
                   ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
                   ctx.beginPath();
@@ -285,189 +287,170 @@ const ShareModal: React.FC<Props> = ({
               grad.addColorStop(1, '#0f041a');
               ctx.fillStyle = grad;
               ctx.fillRect(0,0,w,h);
-
-              // Sun
-              const sunY = h * 0.6;
+              const sunY = h * 0.7;
               const sunGrad = ctx.createLinearGradient(0, sunY - 200, 0, sunY + 200);
               sunGrad.addColorStop(0, '#fbbf24');
               sunGrad.addColorStop(1, '#db2777');
               ctx.fillStyle = sunGrad;
               ctx.beginPath();
-              ctx.arc(w/2, sunY, 300, 0, Math.PI, true);
+              ctx.arc(w/2, sunY, 400, 0, Math.PI, true);
               ctx.fill();
-
-              // Scanlines
-              ctx.fillStyle = 'rgba(0,0,0,0.1)';
-              for(let i=0; i<h; i+=4) ctx.fillRect(0,i,w,2);
+              ctx.fillStyle = 'rgba(0,0,0,0.2)';
+              for(let i=0; i<h; i+=6) ctx.fillRect(0,i,w,3);
           }
           ctx.restore();
 
-          // 2. ANIMATION TIMINGS (Staggered Entrance)
-          const introFrames = totalFrames * introEndPct; // e.g., 60 frames (1s)
-          
-          // Elements stagger in:
-          // Title: 0% -> 30% of Intro
-          // Heart: 20% -> 50% of Intro
-          // Number: 40% -> 80% of Intro
-          // Footer: 70% -> 100% of Intro
-          
-          const getEntrance = (startPct: number, endPct: number) => {
-              const startF = introFrames * startPct;
-              const endF = introFrames * endPct;
-              if (frame < startF) return 0;
-              if (frame >= endF) return 1;
-              return easeOutBack((frame - startF) / (endF - startF));
-          };
-
-          const titleAlpha = getEntrance(0, 0.4);
-          const heartAlpha = getEntrance(0.2, 0.6);
-          const numberAlpha = getEntrance(0.4, 0.8);
-          const footerAlpha = getEntrance(0.7, 1.0);
-
-          const titleY = -50 * (1 - titleAlpha);
-          const heartScale = heartAlpha;
-          const numberScale = 0.5 + (0.5 * numberAlpha);
-
-          // Rolling Number Logic
-          const rollFrames = totalFrames * rollingEndPct;
-          let currentSeconds = targetSeconds;
-          
-          if (frame < rollFrames) {
-              const rollProgress = easeOutExpo(frame / rollFrames);
-              currentSeconds = Math.floor(targetSeconds * rollProgress);
-          }
-
-          // Heart Pulse (72 BPM)
-          // 72 BPM = 1.2 beats/sec = 0.833s/beat = 50 frames/beat
-          const beatFrames = 50;
-          const beatPhase = (frame % beatFrames) / beatFrames;
-          let pulse = 1;
-          if (beatPhase < 0.2) pulse = 1 + Math.sin(beatPhase * Math.PI * 5) * 0.1;
-          else if (beatPhase < 0.4 && beatPhase > 0.25) pulse = 1 + Math.sin((beatPhase - 0.25) * Math.PI * 6) * 0.05;
-
-          // Outro Fade
-          let masterOpacity = 1;
-          if (progress > 0.9) {
-              masterOpacity = 1 - (progress - 0.9) * 10;
-          }
+          // --- 2. Title Entrance (First 10-15%) ---
+          const titleEnterEnd = 0.15;
+          const titleFrames = totalFrames * titleEnterEnd;
+          const titleAlpha = frame < titleFrames 
+            ? easeOutBack(frame/titleFrames)
+            : 1;
+            
+          const titleY = 100 - (100 * titleAlpha);
 
           ctx.save();
-          ctx.globalAlpha = masterOpacity;
+          ctx.globalAlpha = Math.min(titleAlpha, 1);
+          ctx.translate(w/2, 150 + titleY);
           
-          // --- DRAW ELEMENTS ---
+          if (videoStyle === 'minimal') ctx.fillStyle = '#0f172a';
+          else if (videoStyle === 'retro') ctx.fillStyle = '#fcd34d';
+          else ctx.fillStyle = '#fff';
 
-          // 2.1 TITLE
-          ctx.save();
-          ctx.translate(w/2, h/2 - 300 + titleY);
-          ctx.globalAlpha = titleAlpha * masterOpacity;
-          
-          if (videoStyle === 'neon') {
-              ctx.shadowColor = '#d946ef'; ctx.shadowBlur = 20; ctx.fillStyle = '#fff';
-              ctx.font = '800 50px Inter';
-          } else if (videoStyle === 'minimal') {
-              ctx.fillStyle = '#0f172a';
-              ctx.font = '700 40px Inter';
-          } else if (videoStyle === 'retro') {
-              ctx.fillStyle = '#fcd34d'; ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 10;
-              ctx.font = '900 60px Inter';
-          } else {
-              ctx.fillStyle = 'rgba(255,255,255,0.9)';
-              ctx.font = '700 40px Inter';
-          }
-          
           ctx.textAlign = 'center';
+          ctx.font = '800 50px Inter';
           ctx.fillText("TOTAL EXISTENCE", 0, 0);
+          
+          // Subtitle (Name)
+          ctx.font = '600 24px Inter';
+          ctx.globalAlpha = Math.min(titleAlpha * 0.7, 1);
+          ctx.fillText(userProfile.name.toUpperCase(), 0, 40);
           ctx.restore();
 
-          // 2.2 HEART
-          if (heartAlpha > 0) {
-              ctx.save();
-              ctx.translate(w/2, h/2 - 150);
-              ctx.scale(heartScale * pulse, heartScale * pulse);
-              
-              let heartColor = '#f43f5e';
-              if (videoStyle === 'neon') heartColor = '#ec4899';
-              if (videoStyle === 'cosmic') heartColor = '#6366f1';
-              if (videoStyle === 'retro') heartColor = '#db2777';
+          // --- 3. Grid of Stats (One by One) ---
+          // Layout Config
+          const gridCols = 2;
+          const gridStartX = w * 0.15;
+          const gridStartY = 350;
+          const gridGapX = w * 0.1;
+          const gridGapY = 60;
+          const colWidth = (w - (gridStartX * 2) - gridGapX) / 2;
 
-              ctx.shadowColor = heartColor;
-              ctx.shadowBlur = 40 + (pulse - 1) * 100;
+          statItems.forEach((item, idx) => {
+              const startFrame = totalFrames * item.delayPct;
+              const animDuration = 40; // frames to fully enter
               
-              const p = new Path2D("M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z");
-              ctx.scale(8, 8); 
-              ctx.translate(-12, -12); 
+              if (frame >= startFrame) {
+                  let localProgress = (frame - startFrame) / animDuration;
+                  if (localProgress > 1) localProgress = 1;
+                  const ease = easeOutBack(localProgress);
+                  const opacity = localProgress;
+
+                  const col = idx % 2;
+                  const row = Math.floor(idx / 2);
+                  
+                  const x = gridStartX + (col * (colWidth + gridGapX)) + (colWidth/2); // Center of box
+                  const y = gridStartY + (row * (120 + gridGapY));
+
+                  // Rolling Number
+                  const rolledValue = Math.floor(item.value * easeOutExpo(localProgress));
+
+                  ctx.save();
+                  ctx.translate(x, y + (50 * (1 - ease)));
+                  ctx.globalAlpha = opacity;
+                  ctx.scale(ease, ease);
+
+                  // Box Background (Glass)
+                  if (videoStyle !== 'minimal') {
+                      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                      if (videoStyle === 'neon') ctx.strokeStyle = '#d946ef';
+                      
+                      // Draw rounded rect
+                      const boxW = colWidth;
+                      const boxH = 120;
+                      drawRoundedRect(ctx, -boxW/2, -boxH/2, boxW, boxH, 20);
+                      ctx.fill();
+                      ctx.stroke();
+                  }
+
+                  // Label
+                  ctx.textAlign = 'center';
+                  ctx.font = '700 16px Inter';
+                  if (videoStyle === 'minimal') ctx.fillStyle = '#64748b';
+                  else ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                  ctx.fillText(item.label.toUpperCase(), 0, -15);
+
+                  // Value
+                  ctx.font = '900 40px Inter';
+                  if (videoStyle === 'minimal') ctx.fillStyle = '#0f172a';
+                  else if (videoStyle === 'neon') {
+                      ctx.fillStyle = '#fff';
+                      ctx.shadowColor = '#d946ef'; ctx.shadowBlur = 10;
+                  }
+                  else if (videoStyle === 'retro') ctx.fillStyle = '#00f3ff';
+                  else ctx.fillStyle = '#fff';
+                  
+                  ctx.fillText(rolledValue.toLocaleString(), 0, 35);
+
+                  ctx.restore();
+              }
+          });
+
+          // --- 4. The Finale: Seconds (75% onwards) ---
+          const secStartPct = 0.75;
+          const secStartFrame = totalFrames * secStartPct;
+          
+          if (frame >= secStartFrame) {
+              const localProgress = Math.min((frame - secStartFrame) / 60, 1);
+              const ease = easeOutBack(localProgress);
+              
+              // Rolling Seconds
+              const rolledSeconds = Math.floor(seconds * easeOutExpo(localProgress));
+
+              // Heartbeat (72 BPM)
+              const beatFrames = 50;
+              const beatPhase = (frame % beatFrames) / beatFrames;
+              let pulse = 1;
+              if (beatPhase < 0.2) pulse = 1 + Math.sin(beatPhase * Math.PI * 5) * 0.1;
+              
+              const finalY = h - 350;
+
+              ctx.save();
+              ctx.translate(w/2, finalY);
+              ctx.scale(ease, ease);
+              ctx.globalAlpha = localProgress;
+
+              // Heart Icon
+              ctx.save();
+              ctx.translate(0, -120);
+              ctx.scale(2 * pulse, 2 * pulse);
+              const heartColor = videoStyle === 'neon' ? '#ec4899' : '#f43f5e';
               ctx.fillStyle = heartColor;
+              ctx.shadowColor = heartColor;
+              ctx.shadowBlur = 30;
+              const p = new Path2D("M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z");
+              ctx.translate(-12, -12); 
               ctx.fill(p);
               ctx.restore();
-          }
 
-          // 2.3 MAIN NUMBER (SECONDS)
-          if (numberAlpha > 0) {
-              ctx.save();
-              ctx.translate(w/2, h/2 + 50);
-              ctx.scale(numberScale, numberScale);
-              ctx.globalAlpha = numberAlpha * masterOpacity;
-
-              const text = currentSeconds.toLocaleString();
-              
-              if (videoStyle === 'neon') {
-                  ctx.font = '900 130px Inter';
-                  ctx.fillStyle = '#fff';
-                  ctx.shadowColor = '#00f3ff';
-                  ctx.shadowBlur = 30;
-                  // Glitch effect randomly
-                  if (Math.random() > 0.95) ctx.translate(Math.random()*10 - 5, 0);
-              } else if (videoStyle === 'minimal') {
-                  ctx.font = '900 140px Inter';
-                  ctx.fillStyle = '#0f172a';
-              } else if (videoStyle === 'retro') {
-                  ctx.font = '900 130px "Courier New", monospace';
-                  ctx.fillStyle = '#00f3ff';
-                  ctx.shadowColor = '#d946ef';
-                  ctx.shadowBlur = 0;
-                  ctx.shadowOffsetX = 5; ctx.shadowOffsetY = 5;
-              } else {
-                  ctx.font = '900 130px Inter';
-                  ctx.fillStyle = '#fff';
-                  ctx.shadowColor = 'rgba(0,0,0,0.5)';
-                  ctx.shadowBlur = 30;
-                  ctx.shadowOffsetY = 10;
-              }
-
+              // Big Number
+              ctx.font = '900 100px Inter';
+              if (videoStyle === 'minimal') ctx.fillStyle = '#0f172a';
+              else ctx.fillStyle = '#ffffff';
               ctx.textAlign = 'center';
-              ctx.textBaseline = 'middle';
-              ctx.fillText(text, 0, 0);
+              ctx.shadowBlur = 0;
               
-              // Unit Label
-              ctx.translate(0, 100);
-              ctx.font = '700 30px Inter';
+              ctx.fillText(rolledSeconds.toLocaleString(), 0, 50);
+
+              // Label
+              ctx.font = '700 24px Inter';
               if (videoStyle === 'minimal') ctx.fillStyle = '#64748b';
               else ctx.fillStyle = 'rgba(255,255,255,0.7)';
-              ctx.fillText("SECONDS ALIVE", 0, 0);
+              ctx.fillText("SECONDS ALIVE", 0, 100);
+
               ctx.restore();
           }
-
-          // 2.4 FOOTER DETAILS
-          if (footerAlpha > 0) {
-               ctx.save();
-               ctx.translate(w/2, h - 150);
-               ctx.globalAlpha = footerAlpha * masterOpacity;
-               
-               if (videoStyle === 'minimal') ctx.fillStyle = '#334155';
-               else ctx.fillStyle = '#fff';
-
-               ctx.font = '600 24px Inter';
-               ctx.textAlign = 'center';
-               ctx.fillText(userProfile.name.toUpperCase(), 0, 0);
-               
-               ctx.translate(0, 40);
-               ctx.font = '500 18px Inter';
-               ctx.globalAlpha = footerAlpha * masterOpacity * 0.7;
-               ctx.fillText(`Born: ${new Date(userProfile.dob).toLocaleDateString()}`, 0, 0);
-               ctx.restore();
-          }
-
-          ctx.restore();
 
           frame++;
           requestAnimationFrame(renderFrame);
@@ -529,6 +512,20 @@ const ShareModal: React.FC<Props> = ({
     } finally {
         setIsGenerating(false);
     }
+  };
+
+  const drawRoundedRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
   };
 
   // --- Renderers ---
