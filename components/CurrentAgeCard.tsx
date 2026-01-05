@@ -11,7 +11,7 @@ import { getGeneration, getCentury } from '../utils/generators';
 interface Props {
   dob: string;
   tob: string;
-  onShare: (title: string, text: string, milestone?: Milestone, type?: string, extraData?: any) => void;
+  onShare: (title: string, text: string, milestone?: Milestone, type?: 'milestone' | 'age' | 'progress' | 'zodiac' | 'clock', extraData?: any) => void;
 }
 
 const CurrentAgeCard: React.FC<Props> = ({ dob, tob, onShare }) => {

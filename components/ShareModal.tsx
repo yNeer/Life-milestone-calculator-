@@ -1,8 +1,8 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { X, Download, Video, Image as ImageIcon, Check, Film, Zap, Monitor, Globe, Gamepad2, Activity, Play, Square, Instagram, Smartphone } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import * as htmlToImage from 'html-to-image';
-import { Milestone, UserProfile, ThemeId } from '../types';
+import { Milestone, UserProfile } from '../types';
 import { format } from 'date-fns';
 import { themes } from '../utils/themes';
 
@@ -13,12 +13,10 @@ interface Props {
   text: string;
   milestone?: Milestone;
   userProfile: UserProfile;
-  allMilestones?: Milestone[];
   cardType?: 'milestone' | 'age' | 'progress' | 'zodiac' | 'clock';
   extraData?: any; 
 }
 
-type TemplateType = 'classic' | 'modern';
 type ExportFormat = 'png' | 'pdf' | 'svg' | 'webm';
 type VideoStyle = 'cinematic' | 'neon' | 'minimal' | 'cosmic' | 'retro';
 
@@ -32,7 +30,7 @@ const VIDEO_STYLES: { id: VideoStyle; label: string; icon: any; desc: string }[]
 
 const ShareModal: React.FC<Props> = ({ 
     isOpen, onClose, title, text, milestone, userProfile, 
-    allMilestones = [], cardType = 'milestone', extraData = {} 
+    cardType = 'milestone', extraData = {} 
 }) => {
   // --- State ---
   const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16'>('9:16'); 
@@ -45,7 +43,6 @@ const ShareModal: React.FC<Props> = ({
   
   // Preview Scaling
   const [previewScale, setPreviewScale] = useState(1);
-  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
   // Refs
   const cardRef = useRef<HTMLDivElement>(null);      
@@ -102,7 +99,6 @@ const ShareModal: React.FC<Props> = ({
       const handleResize = () => {
           if (previewContainerRef.current) {
               const { clientWidth, clientHeight } = previewContainerRef.current;
-              setContainerSize({ w: clientWidth, h: clientHeight });
               const padding = 20;
               const availW = clientWidth - padding;
               const availH = clientHeight - padding;
@@ -138,7 +134,6 @@ const ShareModal: React.FC<Props> = ({
 
   // --- Video Generation Logic (Canvas) ---
 
-  // Easing functions
   const easeOutExpo = (x: number): number => {
       return x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
   };
@@ -146,9 +141,6 @@ const ShareModal: React.FC<Props> = ({
       const c1 = 1.70158;
       const c3 = c1 + 1;
       return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
-  };
-  const easeInOutQuad = (x: number): number => {
-      return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
   };
 
   const handleGenerateVideo = async () => {
@@ -221,8 +213,6 @@ const ShareModal: React.FC<Props> = ({
               return;
           }
 
-          const progress = frame / totalFrames; // 0 to 1
-          
           // Clear & Background
           ctx.clearRect(0,0,w,h);
           ctx.save();
@@ -329,7 +319,6 @@ const ShareModal: React.FC<Props> = ({
 
           // --- 3. Grid of Stats (One by One) ---
           // Layout Config
-          const gridCols = 2;
           const gridStartX = w * 0.15;
           const gridStartY = 350;
           const gridGapX = w * 0.1;
@@ -540,8 +529,6 @@ const ShareModal: React.FC<Props> = ({
           color: themes[userProfile.theme].colors.text,
       };
       
-      const rgb = (str: string, alpha = 1) => `rgba(${str.split(' ').join(',')}, ${alpha})`;
-
       // --- TOTAL EXISTENCE (AGE) ---
       if (cardType === 'age') {
           const ageStats = (extraData as any) || {};

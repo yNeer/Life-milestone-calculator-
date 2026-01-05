@@ -17,10 +17,6 @@ const getZodiacSign = (date: Date) => {
     return signs[month];
 };
 
-interface ShareProps {
-    onShare: (type: 'zodiac' | 'clock' | 'progress', data: any) => void;
-}
-
 // --- Widgets ---
 
 export const LiveClockWidget: React.FC = () => {

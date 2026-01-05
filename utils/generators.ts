@@ -141,8 +141,7 @@ const getOrdinalSuffix = (n: number) => {
 export const calculateMilestones = (
   baseDate: Date, 
   baseTimeStr: string = "00:00", 
-  sourceName: string = "Birth",
-  customEvents: CustomEvent[] = []
+  sourceName: string = "Birth"
 ): Milestone[] => {
   const milestones: Milestone[] = [];
   const isBirth = sourceName === "Birth";

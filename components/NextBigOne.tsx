@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Milestone } from '../types';
-import { differenceInDays, differenceInSeconds, format } from 'date-fns';
+import { differenceInSeconds, format } from 'date-fns';
 import { Clock, Share2, Calendar } from 'lucide-react';
 
 interface Props {

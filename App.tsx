@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { differenceInSeconds } from 'date-fns';
-import InputSection from './components/InputSection';
 import UpcomingShowcase from './components/UpcomingShowcase';
 import NextBirthdayCard from './components/NextBirthdayCard';
 import MilestoneList from './components/MilestoneList';
@@ -17,7 +16,6 @@ import { CustomEvent, ThemeId, UserProfile, Milestone, MilestoneCategory } from 
 import { getAllMilestones } from './utils/generators';
 import { applyTheme } from './utils/themes';
 import { Info, Sparkles, CalendarRange, ChevronRight } from 'lucide-react';
-import ShareButton from './components/ShareButton';
 
 const ShareModal = React.lazy(() => import('./components/ShareModal'));
 
@@ -215,7 +213,7 @@ const App: React.FC = () => {
 
                  {/* 4. Year Progress (1x1) */}
                  <div className="col-span-1 lg:col-span-1 min-h-[140px]">
-                     <YearProgressWidget onShare={(type, data) => openShare("Year Progress", "Check out my year progress", undefined, type as any, data)} />
+                     <YearProgressWidget onShare={(t, data) => openShare("Year Progress", "Check out my year progress", undefined, t as any, data)} />
                  </div>
 
                  {/* 5. Next Birthday (1x1 or 1x2 depending on content) */}
@@ -225,13 +223,13 @@ const App: React.FC = () => {
                  
                  {/* 6. Zodiac (1x1) */}
                  <div className="col-span-1 lg:col-span-1 min-h-[140px]">
-                     <ZodiacWidget dob={new Date(profile.dob)} onShare={(type, data) => openShare("My Zodiac", `I am a ${data.sign}`, undefined, 'zodiac', data)} />
+                     <ZodiacWidget dob={new Date(profile.dob)} onShare={(t, data) => openShare("My Zodiac", `I am a ${data.sign}`, undefined, 'zodiac', data)} />
                  </div>
 
                  {/* 7. Day Born (1x1) */}
                  {/* This was pushed out of alignment in previous, can fit here or new row */}
                  <div className="col-span-1 lg:col-span-1 min-h-[140px]">
-                     <DayBornWidget dob={new Date(profile.dob)} onShare={(type, data) => openShare("Born On", `I was born on a ${data.sign}`, undefined, 'zodiac', data)} />
+                     <DayBornWidget dob={new Date(profile.dob)} onShare={(t, data) => openShare("Born On", `I was born on a ${data.sign}`, undefined, 'zodiac', data)} />
                  </div>
 
              </div>
@@ -328,7 +326,6 @@ const App: React.FC = () => {
                 cardType={shareData.type}
                 extraData={shareData.extraData}
                 userProfile={profile}
-                allMilestones={milestones} 
             />
         )}
       </Suspense>

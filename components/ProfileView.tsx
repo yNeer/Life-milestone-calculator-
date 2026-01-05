@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { UserProfile, CustomEvent, CustomEventCategory, ThemeId } from '../types';
+import { UserProfile, CustomEvent, CustomEventCategory } from '../types';
 import { themes } from '../utils/themes';
 import { User, Calendar, Clock, Plus, Trash2, Save, Camera, Upload, Download, CheckCircle, Smartphone, Palette } from 'lucide-react';
 
