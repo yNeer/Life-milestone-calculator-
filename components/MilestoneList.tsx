@@ -36,9 +36,9 @@ const MilestoneList: React.FC<Props> = ({ milestones, onShare }) => {
   };
 
   return (
-    <div className="bg-skin-card rounded-xl shadow-sm border border-skin-border overflow-hidden flex flex-col h-full min-h-[600px] animate-in fade-in duration-500">
+    <div className="bg-skin-card/70 backdrop-blur-xl rounded-xl shadow-sm border border-white/20 overflow-hidden flex flex-col h-full min-h-[600px] animate-in fade-in duration-500">
       {/* Header Controls */}
-      <div className="p-4 border-b border-skin-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-skin-base/50">
+      <div className="p-4 border-b border-skin-border/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-skin-base/30">
         <div>
             <h3 className="font-bold text-skin-text text-lg">All Milestones</h3>
             <p className="text-xs text-skin-muted">Viewing {displayList.length} of {filtered.length} events</p>
@@ -54,7 +54,7 @@ const MilestoneList: React.FC<Props> = ({ milestones, onShare }) => {
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value as MilestoneCategory | 'All')}
-                  className="pl-8 pr-8 py-1.5 text-xs font-medium rounded-md bg-skin-card border border-skin-border text-skin-text focus:outline-none focus:ring-2 focus:ring-skin-primary w-full sm:w-auto"
+                  className="pl-8 pr-8 py-1.5 text-xs font-medium rounded-md bg-skin-card/50 border border-skin-border/50 text-skin-text focus:outline-none focus:ring-2 focus:ring-skin-primary w-full sm:w-auto backdrop-blur-sm"
                 >
                   <option value="All">All Categories</option>
                   {Object.values(MilestoneCategory).map(cat => (
@@ -64,14 +64,14 @@ const MilestoneList: React.FC<Props> = ({ milestones, onShare }) => {
             </div>
 
             {/* Time Toggles */}
-            <div className="flex gap-1 bg-skin-input p-1 rounded-lg w-full sm:w-auto">
+            <div className="flex gap-1 bg-skin-input/50 p-1 rounded-lg w-full sm:w-auto backdrop-blur-sm">
             {(['all', 'past', 'future'] as const).map(f => (
                 <button
                 key={f}
                 onClick={() => setTimeFilter(f)}
                 className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium rounded-md capitalize transition-all ${
                     timeFilter === f 
-                    ? 'bg-skin-card text-skin-primary shadow-sm border border-skin-border' 
+                    ? 'bg-skin-card shadow-sm border border-skin-border/50 text-skin-primary' 
                     : 'text-skin-muted hover:text-skin-text'
                 }`}
                 >
@@ -103,8 +103,8 @@ const MilestoneList: React.FC<Props> = ({ milestones, onShare }) => {
               key={m.id} 
               className={`group flex items-start gap-4 p-4 rounded-lg mb-2 transition-colors border ${
                 m.isPast 
-                    ? 'bg-skin-base/30 border-skin-border/50 opacity-60 hover:opacity-100' 
-                    : 'bg-skin-card border-skin-border hover:border-skin-primary/30 hover:shadow-sm'
+                    ? 'bg-skin-base/30 border-skin-border/30 opacity-60 hover:opacity-100 hover:bg-skin-card/40' 
+                    : 'bg-skin-card/40 border-skin-border/40 hover:border-skin-primary/30 hover:bg-skin-card/70 hover:shadow-sm backdrop-blur-sm'
               }`}
             >
               <div className="mt-1">
@@ -128,11 +128,11 @@ const MilestoneList: React.FC<Props> = ({ milestones, onShare }) => {
                 <p className="text-sm text-skin-muted mt-1">{m.description}</p>
                 <div className="flex items-center justify-between mt-2">
                     <div className="flex flex-wrap gap-2">
-                        <span className="inline-block text-[10px] uppercase tracking-wider font-bold text-skin-muted bg-skin-base border border-skin-border px-1.5 py-0.5 rounded">
+                        <span className="inline-block text-[10px] uppercase tracking-wider font-bold text-skin-muted bg-skin-base/50 border border-skin-border/50 px-1.5 py-0.5 rounded backdrop-blur-sm">
                             {m.category}
                         </span>
                         {m.sourceEventName !== 'Birth' && (
-                            <span className="inline-block text-[10px] uppercase tracking-wider font-bold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">
+                            <span className="inline-block text-[10px] uppercase tracking-wider font-bold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded backdrop-blur-sm">
                                 {m.sourceEventName}
                             </span>
                         )}

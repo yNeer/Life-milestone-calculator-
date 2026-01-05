@@ -162,12 +162,12 @@ const App: React.FC = () => {
                      <UpcomingShowcase milestones={milestones} onShare={openShare} />
                </div>
 
-              <div className="bg-skin-card p-6 rounded-xl shadow-sm border border-skin-border">
+              <div className="bg-skin-card/70 backdrop-blur-xl p-6 rounded-xl shadow-sm border border-white/20">
                 <h3 className="text-xl font-bold text-skin-text mb-1">Hello, {profile.name || 'Friend'}!</h3>
                 <p className="text-sm text-skin-muted mb-4">You are viewing your life timeline.</p>
                 <button 
                     onClick={() => setCurrentView('profile')}
-                    className="w-full py-2 px-4 bg-skin-input hover:bg-skin-border text-skin-primary font-medium rounded-lg text-sm transition-colors"
+                    className="w-full py-2 px-4 bg-skin-input/50 hover:bg-skin-border/50 text-skin-primary font-medium rounded-lg text-sm transition-colors border border-skin-border/20"
                 >
                     Edit Profile Details
                 </button>
@@ -177,7 +177,7 @@ const App: React.FC = () => {
               <NextBirthdayCard dob={profile.dob} onShare={openShare} />
 
               {/* Year Stats Card */}
-              <div className="bg-skin-card p-5 rounded-xl shadow-sm border border-skin-border relative overflow-hidden group">
+              <div className="bg-skin-card/70 backdrop-blur-xl p-5 rounded-xl shadow-sm border border-white/20 relative overflow-hidden group">
                   <div className="absolute top-0 right-0 p-8 opacity-5">
                       <CalendarRange size={100} className="text-skin-text"/>
                   </div>
@@ -197,7 +197,7 @@ const App: React.FC = () => {
                   </button>
               </div>
 
-              <div className="bg-skin-card p-5 rounded-xl shadow-sm border border-skin-border">
+              <div className="bg-skin-card/70 backdrop-blur-xl p-5 rounded-xl shadow-sm border border-white/20">
                 <h3 className="font-semibold flex items-center gap-2 mb-2 text-skin-text">
                   <Info className="w-4 h-4 text-skin-primary" />
                   About the Math
@@ -216,7 +216,7 @@ const App: React.FC = () => {
               </div>
               
               {/* Short Preview List on Dashboard */}
-              <div className="bg-skin-card rounded-xl shadow-sm border border-skin-border p-6">
+              <div className="bg-skin-card/70 backdrop-blur-xl rounded-xl shadow-sm border border-white/20 p-6">
                   <div className="flex justify-between items-center mb-4">
                       <h3 className="font-bold text-skin-text flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-amber-500" />
@@ -231,7 +231,7 @@ const App: React.FC = () => {
                         .sort((a,b) => Math.abs(a.date.getTime() - new Date().getTime()) - Math.abs(b.date.getTime() - new Date().getTime())) // Sort by closeness to now
                         .slice(0, 5) // Show top 5 relevant
                         .map(m => (
-                          <div key={m.id} className="flex justify-between text-sm border-b border-skin-border pb-2 last:border-0 hover:bg-skin-base/50 p-2 rounded-lg transition-colors group">
+                          <div key={m.id} className="flex justify-between text-sm border-b border-skin-border/50 pb-2 last:border-0 hover:bg-skin-base/30 p-2 rounded-lg transition-colors group">
                              <div className="flex flex-col">
                                 <span className={m.isPast ? "text-skin-muted line-through opacity-70" : "text-skin-text font-medium"}>{m.title}</span>
                                 <span className="text-[10px] text-skin-muted uppercase font-bold">{m.category}</span>

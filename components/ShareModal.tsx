@@ -169,11 +169,14 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
       canvas.height = h;
 
       const currentTheme = themes[activeThemeId];
-      // Use theme colors
-      const bgGradientStart = currentTheme.colors.base;
-      const bgGradientEnd = currentTheme.colors.card; 
-      const textColor = currentTheme.colors.text;
-      const primaryColor = currentTheme.colors.primary;
+      // Use theme colors via manual RGB conversion from new Theme system (strings)
+      // Since canvas needs solid colors, we parse the "R G B" string
+      const parseRgb = (rgbStr: string) => `rgb(${rgbStr})`;
+      
+      const bgGradientStart = parseRgb(currentTheme.colors.base);
+      const bgGradientEnd = parseRgb(currentTheme.colors.card); 
+      const textColor = parseRgb(currentTheme.colors.text);
+      const primaryColor = parseRgb(currentTheme.colors.primary);
 
       const particles = Array.from({ length: 60 }).map(() => ({
           x: Math.random() * w,
@@ -205,11 +208,11 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                   if (p.y < 0) p.y = h;
                   ctx.beginPath();
                   ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                  ctx.fillStyle = `${textColor}20`;
+                  ctx.fillStyle = `${textColor}20`; // Hex alpha approximation
                   ctx.fill();
               });
           } else if (animStyle === 'rolling') {
-               ctx.strokeStyle = `${textColor}10`;
+               ctx.strokeStyle = `rgba(255,255,255,0.1)`;
                ctx.lineWidth = 2;
                const offset = (elapsed * 0.05) % 100;
                for(let i=0; i<w; i+=100) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke(); }
@@ -257,7 +260,7 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                 ctx.beginPath(); ctx.arc(0, 0, avatarSize/2, 0, Math.PI * 2);
                 ctx.strokeStyle = textColor; ctx.lineWidth = 8; ctx.stroke();
             } else {
-               ctx.beginPath(); ctx.arc(0, 0, 80, 0, Math.PI*2); ctx.fillStyle = `${textColor}20`; ctx.fill();
+               ctx.beginPath(); ctx.arc(0, 0, 80, 0, Math.PI*2); ctx.fillStyle = `rgba(255,255,255,0.2)`; ctx.fill();
             }
             ctx.restore();
           }
@@ -374,6 +377,9 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
           });
       }));
 
+      // Scroll to top to prevent canvas offset issues
+      window.scrollTo(0, 0);
+
       const canvas = await html2canvas(targetRef, { 
           scale: scale, 
           useCORS: true, 
@@ -391,6 +397,13 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
               if (el) {
                   el.style.transform = 'none';
                   el.style.opacity = '1';
+                  
+                  // Fix text shifting downwards in html2canvas export
+                  // A transformation translate is often more robust than top/margin in canvas rendering
+                  const contentLayers = el.querySelectorAll('.content-layer');
+                  contentLayers.forEach((layer: any) => {
+                      layer.style.transform = 'translateY(-30px)'; 
+                  });
               }
           }
       });
@@ -464,23 +477,17 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                     text: `Check out this milestone: ${selectedMilestone?.title}`
                 };
 
-                // Check if sharing is supported
                 if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
                     try {
                         await navigator.share(shareData);
                     } catch (e: any) {
-                        // Ignore user cancellation and benign errors
                         if (
                             e.name === 'AbortError' || 
                             e.name === 'NotAllowedError' ||
                             e.message.toLowerCase().includes('cancel') ||
                             e.message.toLowerCase().includes('gesture')
-                        ) {
-                            return;
-                        }
-                        
+                        ) { return; }
                         console.warn('Share error:', e);
-                        // Fallback logic could be added here if needed
                         alert("Could not share automatically. Please use the 'Save to Device' button.");
                     }
                 } else {
@@ -529,6 +536,8 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
   
   // Theme Helper
   const currentTheme = themes[activeThemeId];
+  // Parse RGB strings to style objects for inline use
+  const rgb = (str: string, alpha = 1) => `rgba(${str.split(' ').join(',')}, ${alpha})`;
 
   // Stats Data
   const stats = calculateCosmicStats(activeMilestone.date);
@@ -541,8 +550,8 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
           height: '100%',
           position: 'relative' as const,
           overflow: 'hidden',
-          background: currentTheme.colors.base,
-          color: currentTheme.colors.text,
+          backgroundColor: rgb(currentTheme.colors.base),
+          color: rgb(currentTheme.colors.text),
       };
 
       const bgPattern = (
@@ -552,7 +561,7 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
       const gradientOverlay = (
           <div 
             className="absolute inset-0 opacity-30 pointer-events-none" 
-            style={{ background: `linear-gradient(135deg, ${currentTheme.colors.primary} 0%, transparent 100%)` }} 
+            style={{ background: `linear-gradient(135deg, ${rgb(currentTheme.colors.primary)} 0%, transparent 100%)` }} 
           />
       );
 
@@ -638,33 +647,33 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                 {bgPattern}
                 {gradientOverlay}
                 
-                <div className="relative z-10 flex flex-col items-center gap-6 w-full max-w-4xl mx-auto h-full justify-center">
+                <div className="relative z-10 flex flex-col items-center gap-6 w-full max-w-4xl mx-auto h-full justify-center content-layer">
                     <div 
                         className="w-32 h-32 rounded-full border-4 shadow-xl overflow-hidden shrink-0"
-                        style={{ borderColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.card }}
+                        style={{ borderColor: rgb(currentTheme.colors.border), backgroundColor: rgb(currentTheme.colors.card) }}
                     >
                         {avatarEl}
                     </div>
                     
                     <div 
                         className="uppercase tracking-[0.2em] text-xl font-bold opacity-60 border-y-2 py-3 px-10"
-                        style={{ borderColor: currentTheme.colors.border }}
+                        style={{ borderColor: rgb(currentTheme.colors.border) }}
                     >
                         Milestone Reached
                     </div>
                     
                     <h2 
                         className="text-7xl font-black leading-none tracking-tight break-words w-full drop-shadow-sm line-clamp-3"
-                        style={{ color: currentTheme.colors.text }}
+                        style={{ color: rgb(currentTheme.colors.text) }}
                     >
                         {activeMilestone.title}
                     </h2>
                     
                     <div 
                         className="px-8 py-4 rounded-xl border backdrop-blur-md shadow-lg mb-2"
-                        style={{ backgroundColor: `${currentTheme.colors.card}60`, borderColor: currentTheme.colors.border }}
+                        style={{ backgroundColor: rgb(currentTheme.colors.card, 0.4), borderColor: rgb(currentTheme.colors.border) }}
                     >
-                        <span className="font-mono text-4xl font-bold" style={{ color: currentTheme.colors.primary }}>
+                        <span className="font-mono text-4xl font-bold" style={{ color: rgb(currentTheme.colors.primary) }}>
                             {activeMilestone.date ? format(activeMilestone.date, 'MMMM do, yyyy') : 'Today'}
                         </span>
                     </div>
@@ -686,25 +695,25 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                 {bgPattern}
                 
                 {/* Top Section */}
-                <div className="relative z-10 flex justify-between items-start w-full">
+                <div className="relative z-10 flex justify-between items-start w-full content-layer">
                      <div className="flex flex-col gap-2">
                         <div className="text-3xl font-bold opacity-60 uppercase tracking-widest">Milestone</div>
                         <div className="text-xl opacity-50">{format(new Date(), 'EEEE, MMMM do')}</div>
                      </div>
                      <div 
                         className="w-24 h-24 rounded-2xl overflow-hidden shadow-lg border-2"
-                        style={{ borderColor: currentTheme.colors.border }}
+                        style={{ borderColor: rgb(currentTheme.colors.border) }}
                      >
                         {avatarEl}
                      </div>
                 </div>
 
                 {/* Middle Section */}
-                <div className="relative z-10 my-auto">
-                    <div className="w-20 h-2 mb-8" style={{ backgroundColor: currentTheme.colors.primary }}></div>
+                <div className="relative z-10 my-auto content-layer">
+                    <div className="w-20 h-2 mb-8" style={{ backgroundColor: rgb(currentTheme.colors.primary) }}></div>
                     <h2 
                         className="text-[100px] font-black leading-[0.9] tracking-tighter mb-8 break-words w-full line-clamp-4"
-                        style={{ color: currentTheme.colors.text }}
+                        style={{ color: rgb(currentTheme.colors.text) }}
                     >
                         {activeMilestone.title}
                     </h2>
@@ -714,12 +723,12 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                 </div>
 
                 {/* Bottom Section */}
-                <div className="relative z-10 w-full">
+                <div className="relative z-10 w-full content-layer">
                      {showStats ? renderCosmicStatsBlock('row') : (
-                        <div className="border-t-2 pt-8 flex justify-between items-end" style={{ borderColor: `${currentTheme.colors.text}20`}}>
+                        <div className="border-t-2 pt-8 flex justify-between items-end" style={{ borderColor: rgb(currentTheme.colors.text, 0.2) }}>
                             <div>
                                 <div className="text-sm uppercase tracking-widest opacity-50 mb-1">Target Date</div>
-                                <div className="text-5xl font-bold" style={{ color: currentTheme.colors.primary }}>
+                                <div className="text-5xl font-bold" style={{ color: rgb(currentTheme.colors.primary) }}>
                                     {activeMilestone.date ? format(activeMilestone.date, 'dd.MM.yyyy') : 'Today'}
                                 </div>
                             </div>
@@ -738,15 +747,15 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
       if (selectedTemplate === 'bold') {
           return (
               <div style={commonContainerStyles} className="flex flex-col items-center justify-center p-8 transition-colors duration-500">
-                  <div className="absolute inset-0 opacity-50" style={{ background: currentTheme.colors.card }}></div>
-                  <div className="absolute -top-[20%] -right-[20%] w-[800px] h-[800px] rounded-full opacity-20 blur-3xl" style={{ backgroundColor: currentTheme.colors.primary }}></div>
+                  <div className="absolute inset-0 opacity-50" style={{ background: rgb(currentTheme.colors.card) }}></div>
+                  <div className="absolute -top-[20%] -right-[20%] w-[800px] h-[800px] rounded-full opacity-20 blur-3xl" style={{ backgroundColor: rgb(currentTheme.colors.primary) }}></div>
                   
-                  <div className="relative z-10 border-4 w-full h-full flex flex-col justify-center items-center p-12 text-center" style={{ borderColor: currentTheme.colors.text }}>
-                      <div className="bg-skin-card px-8 py-2 -mt-10 mb-6 text-xl font-bold uppercase tracking-[0.3em] border shadow-sm" style={{ borderColor: currentTheme.colors.border, color: currentTheme.colors.primary }}>
+                  <div className="relative z-10 border-4 w-full h-full flex flex-col justify-center items-center p-12 text-center content-layer" style={{ borderColor: rgb(currentTheme.colors.text) }}>
+                      <div className="bg-skin-card px-8 py-2 -mt-10 mb-6 text-xl font-bold uppercase tracking-[0.3em] border shadow-sm" style={{ borderColor: rgb(currentTheme.colors.border), color: rgb(currentTheme.colors.primary) }}>
                           Achievement Unlocked
                       </div>
 
-                      <h2 className="text-[110px] font-black uppercase leading-none mb-6 break-words w-full line-clamp-3" style={{ textShadow: `4px 4px 0px ${currentTheme.colors.muted}40` }}>
+                      <h2 className="text-[110px] font-black uppercase leading-none mb-6 break-words w-full line-clamp-3" style={{ textShadow: `4px 4px 0px ${rgb(currentTheme.colors.muted, 0.4)}` }}>
                           {activeMilestone.title}
                       </h2>
 
@@ -771,7 +780,7 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
       if (selectedTemplate === 'minimal') {
           return (
               <div style={commonContainerStyles} className="flex flex-col items-center p-20 transition-colors duration-500">
-                  <div className="flex-1 flex flex-col items-center justify-center w-full">
+                  <div className="flex-1 flex flex-col items-center justify-center w-full content-layer">
                        <div className="w-24 h-24 rounded-full overflow-hidden mb-8 grayscale opacity-80">
                            {avatarEl}
                        </div>
@@ -780,13 +789,13 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                           {activeMilestone.title}
                        </h2>
                        
-                       <div className="w-16 h-1 my-6" style={{ backgroundColor: currentTheme.colors.primary }}></div>
+                       <div className="w-16 h-1 my-6" style={{ backgroundColor: rgb(currentTheme.colors.primary) }}></div>
                        
                        <p className="text-xl font-mono text-center opacity-60 max-w-2xl mb-4">
                            "{activeMilestone.description}"
                        </p>
 
-                       <div className="font-mono text-3xl font-bold" style={{ color: currentTheme.colors.primary }}>
+                       <div className="font-mono text-3xl font-bold" style={{ color: rgb(currentTheme.colors.primary) }}>
                           {activeMilestone.date ? format(activeMilestone.date, 'yyyy.MM.dd') : 'Today'}
                       </div>
 
@@ -803,23 +812,23 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
 
   return (
     <div 
-        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4 animate-in fade-in duration-200 overflow-hidden"
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xl p-0 sm:p-4 animate-in fade-in duration-300 overflow-hidden"
         onClick={onClose}
     >
       <div 
-        className="bg-skin-card w-full max-w-7xl rounded-none sm:rounded-3xl flex flex-col-reverse md:flex-row shadow-2xl h-full md:h-[90vh] border border-skin-border overflow-hidden"
+        className="bg-skin-card/80 backdrop-blur-2xl w-full max-w-7xl rounded-none sm:rounded-3xl flex flex-col-reverse md:flex-row shadow-2xl h-full md:h-[90vh] border border-white/20 overflow-hidden"
         onClick={(e) => e.stopPropagation()} 
       >
         
-        {/* Left (Desktop) / Bottom (Mobile): Controls */}
-        <div className="p-6 w-full md:w-96 flex-shrink-0 border-t md:border-t-0 md:border-r border-skin-border flex flex-col gap-5 bg-skin-base/50 overflow-y-auto scrollbar-hide overscroll-contain h-[45%] md:h-full z-20">
+        {/* Left Controls - Glass */}
+        <div className="p-6 w-full md:w-96 flex-shrink-0 border-t md:border-t-0 md:border-r border-skin-border/50 flex flex-col gap-5 bg-skin-base/40 overflow-y-auto scrollbar-hide overscroll-contain h-[45%] md:h-full z-20">
             {/* ... Controls code ... */}
             <div className="flex justify-between items-center">
                 <h3 className="font-bold text-lg text-skin-text flex items-center gap-2">
                     <Film className="w-5 h-5 text-skin-primary" />
                     Share Studio
                 </h3>
-                <button onClick={onClose} className="p-2 hover:bg-skin-border rounded-full transition-colors text-skin-muted hover:text-skin-text"><X size={20} /></button>
+                <button onClick={onClose} className="p-2 hover:bg-skin-border/50 rounded-full transition-colors text-skin-muted hover:text-skin-text"><X size={20} /></button>
             </div>
 
             <div className="space-y-6">
@@ -829,7 +838,7 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                         <Calendar size={12}/> Event Selection
                     </label>
                     <select 
-                        className="w-full p-3 text-sm rounded-xl border border-skin-border bg-skin-card text-skin-text focus:ring-2 focus:ring-skin-primary focus:outline-none"
+                        className="w-full p-3 text-sm rounded-xl border border-skin-border/50 bg-skin-card/50 text-skin-text focus:ring-2 focus:ring-skin-primary focus:outline-none backdrop-blur-sm"
                         onChange={(e) => {
                             const found = allMilestones.find(m => m.id === e.target.value);
                             if (found) setSelectedMilestone(found);
@@ -852,14 +861,14 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                     <div className="grid grid-cols-2 gap-3">
                         <button 
                             onClick={() => setFormatType('image')}
-                            className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 text-sm font-medium transition-all ${formatType === 'image' ? 'border-skin-primary bg-skin-primary/10 text-skin-primary ring-1 ring-skin-primary' : 'border-skin-border hover:border-skin-muted bg-skin-card'}`}
+                            className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 text-sm font-medium transition-all ${formatType === 'image' ? 'border-skin-primary bg-skin-primary/10 text-skin-primary ring-1 ring-skin-primary' : 'border-skin-border/50 hover:border-skin-muted/50 bg-skin-card/50'}`}
                         >
                             <ImageIcon size={24} /> 
                             <span>Image</span>
                         </button>
                          <button 
                             onClick={() => setFormatType('video')}
-                            className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 text-sm font-medium transition-all ${formatType === 'video' ? 'border-skin-primary bg-skin-primary/10 text-skin-primary ring-1 ring-skin-primary' : 'border-skin-border hover:border-skin-muted bg-skin-card'}`}
+                            className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 text-sm font-medium transition-all ${formatType === 'video' ? 'border-skin-primary bg-skin-primary/10 text-skin-primary ring-1 ring-skin-primary' : 'border-skin-border/50 hover:border-skin-muted/50 bg-skin-card/50'}`}
                         >
                             <Video size={24} /> 
                             <span>Video Loop</span>
@@ -883,10 +892,10 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                                 key={t.id}
                                 onClick={() => setSelectedTemplate(t.id as TemplateType)}
                                 className={`
-                                    p-3 rounded-xl border flex items-center gap-3 transition-all
+                                    p-3 rounded-xl border flex items-center gap-3 transition-all backdrop-blur-sm
                                     ${selectedTemplate === t.id 
                                         ? 'border-skin-primary bg-skin-primary/10 text-skin-primary ring-1 ring-skin-primary' 
-                                        : 'border-skin-border bg-skin-card hover:bg-skin-input text-skin-text'}
+                                        : 'border-skin-border/50 bg-skin-card/50 hover:bg-skin-input/80 text-skin-text'}
                                 `}
                             >
                                 <t.icon size={16} />
@@ -897,7 +906,7 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                 </div>
 
                 {/* 3.5 Cosmic Stats Toggle */}
-                <div className="flex items-center justify-between p-3 rounded-xl border border-skin-border bg-skin-card">
+                <div className="flex items-center justify-between p-3 rounded-xl border border-skin-border/50 bg-skin-card/50 backdrop-blur-sm">
                     <label className="text-xs font-bold text-skin-muted uppercase tracking-wider flex items-center gap-2 cursor-pointer" htmlFor="cosmic-toggle">
                         <Globe size={14}/> Show Cosmic Stats
                     </label>
@@ -919,19 +928,19 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                         <div className="grid grid-cols-3 gap-2">
                             <button 
                                 onClick={() => setImageQuality('1080p')}
-                                className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all ${imageQuality === '1080p' ? 'bg-skin-primary text-white border-skin-primary' : 'bg-skin-card border-skin-border hover:bg-skin-input'}`}
+                                className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all ${imageQuality === '1080p' ? 'bg-skin-primary text-white border-skin-primary' : 'bg-skin-card/50 border-skin-border/50 hover:bg-skin-input/80'}`}
                             >
                                 <Monitor size={14} /> 1080p
                             </button>
                             <button 
                                 onClick={() => setImageQuality('4K')}
-                                className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all ${imageQuality === '4K' ? 'bg-skin-primary text-white border-skin-primary' : 'bg-skin-card border-skin-border hover:bg-skin-input'}`}
+                                className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all ${imageQuality === '4K' ? 'bg-skin-primary text-white border-skin-primary' : 'bg-skin-card/50 border-skin-border/50 hover:bg-skin-input/80'}`}
                             >
                                 <Gauge size={14} /> 4K
                             </button>
                             <button 
                                 onClick={() => setImageQuality('Max')}
-                                className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all ${imageQuality === 'Max' ? 'bg-skin-primary text-white border-skin-primary' : 'bg-skin-card border-skin-border hover:bg-skin-input'}`}
+                                className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all ${imageQuality === 'Max' ? 'bg-skin-primary text-white border-skin-primary' : 'bg-skin-card/50 border-skin-border/50 hover:bg-skin-input/80'}`}
                             >
                                 <Maximize size={14} /> Max
                             </button>
@@ -951,7 +960,7 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                                     <button 
                                         key={s}
                                         onClick={() => setDuration(s as any)}
-                                        className={`flex-1 py-2 rounded-lg border text-xs font-bold transition-all ${duration === s ? 'bg-skin-primary text-white border-skin-primary' : 'bg-skin-card border-skin-border hover:bg-skin-input'}`}
+                                        className={`flex-1 py-2 rounded-lg border text-xs font-bold transition-all ${duration === s ? 'bg-skin-primary text-white border-skin-primary' : 'bg-skin-card/50 border-skin-border/50 hover:bg-skin-input/80'}`}
                                     >
                                         {s}s
                                     </button>
@@ -966,21 +975,21 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                             <div className="grid grid-cols-3 gap-2">
                                 <button 
                                     onClick={() => setAnimStyle('particles')}
-                                    className={`py-2 px-1 rounded-lg border flex flex-col items-center gap-1 ${animStyle === 'particles' ? 'bg-skin-primary/10 border-skin-primary text-skin-primary' : 'bg-skin-card border-skin-border'}`}
+                                    className={`py-2 px-1 rounded-lg border flex flex-col items-center gap-1 ${animStyle === 'particles' ? 'bg-skin-primary/10 border-skin-primary text-skin-primary' : 'bg-skin-card/50 border-skin-border/50'}`}
                                 >
                                     <Sparkles size={16}/>
                                     <span className="text-[10px] font-bold">Particles</span>
                                 </button>
                                 <button 
                                     onClick={() => setAnimStyle('rolling')}
-                                    className={`py-2 px-1 rounded-lg border flex flex-col items-center gap-1 ${animStyle === 'rolling' ? 'bg-skin-primary/10 border-skin-primary text-skin-primary' : 'bg-skin-card border-skin-border'}`}
+                                    className={`py-2 px-1 rounded-lg border flex flex-col items-center gap-1 ${animStyle === 'rolling' ? 'bg-skin-primary/10 border-skin-primary text-skin-primary' : 'bg-skin-card/50 border-skin-border/50'}`}
                                 >
                                     <Activity size={16}/>
                                     <span className="text-[10px] font-bold">Rolling</span>
                                 </button>
                                 <button 
                                     onClick={() => setAnimStyle('pulse')}
-                                    className={`py-2 px-1 rounded-lg border flex flex-col items-center gap-1 ${animStyle === 'pulse' ? 'bg-skin-primary/10 border-skin-primary text-skin-primary' : 'bg-skin-card border-skin-border'}`}
+                                    className={`py-2 px-1 rounded-lg border flex flex-col items-center gap-1 ${animStyle === 'pulse' ? 'bg-skin-primary/10 border-skin-primary text-skin-primary' : 'bg-skin-card/50 border-skin-border/50'}`}
                                 >
                                     <Move size={16}/>
                                     <span className="text-[10px] font-bold">Pulse</span>
@@ -1002,7 +1011,7 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                             <button 
                                 key={r.id}
                                 onClick={() => setAspectRatio(r.id as any)}
-                                className={`py-3 px-1 rounded-xl border flex flex-col items-center gap-1 transition-all ${aspectRatio === r.id ? 'border-skin-primary bg-skin-primary text-white shadow-md' : 'border-skin-border text-skin-muted hover:bg-skin-input bg-skin-card'}`}
+                                className={`py-3 px-1 rounded-xl border flex flex-col items-center gap-1 transition-all ${aspectRatio === r.id ? 'border-skin-primary bg-skin-primary text-white shadow-md' : 'border-skin-border/50 text-skin-muted hover:bg-skin-input/80 bg-skin-card/50'}`}
                             >
                                 <r.icon size={18} />
                                 <span className="text-[10px] font-bold">{r.id}</span>
@@ -1023,17 +1032,17 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                                 onClick={() => setActiveThemeId(t.id)}
                                 className={`p-2 rounded-lg border text-left text-xs transition-all flex items-center gap-2 ${
                                     activeThemeId === t.id
-                                        ? 'border-skin-primary ring-1 ring-skin-primary bg-skin-card'
-                                        : 'border-skin-border hover:bg-skin-input bg-skin-base/50'
+                                        ? 'border-skin-primary ring-1 ring-skin-primary bg-skin-card/80'
+                                        : 'border-skin-border/50 hover:bg-skin-input/50 bg-skin-base/30'
                                 }`}
                             >
                                 <div 
                                     className="w-4 h-4 rounded-full border shadow-sm flex-shrink-0" 
-                                    style={{ background: t.colors.primary }}
+                                    style={{ background: `rgb(${t.colors.primary})` }}
                                 />
                                 <span className="truncate font-medium">{t.name}</span>
                                 {userProfile.theme === t.id && (
-                                    <span className="ml-auto text-[10px] bg-skin-input px-1 rounded text-skin-muted">My</span>
+                                    <span className="ml-auto text-[10px] bg-skin-input/50 px-1 rounded text-skin-muted">My</span>
                                 )}
                             </button>
                         ))}
@@ -1042,11 +1051,11 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
             </div>
 
             {/* Actions Footer */}
-            <div className="mt-auto pt-6 border-t border-skin-border space-y-3 pb-20 md:pb-0">
+            <div className="mt-auto pt-6 border-t border-skin-border/30 space-y-3 pb-20 md:pb-0">
                 <button 
                     onClick={handleDownload}
                     disabled={isGenerating}
-                    className="w-full py-4 bg-skin-primary hover:bg-skin-primary/90 text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all disabled:opacity-50 shadow-lg shadow-skin-primary/20 hover:shadow-xl active:scale-[0.98]"
+                    className="w-full py-4 bg-skin-primary hover:bg-skin-primary/90 text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all disabled:opacity-50 shadow-lg shadow-skin-primary/20 hover:shadow-xl active:scale-[0.98] backdrop-blur-sm"
                 >
                     {isGenerating ? <div className="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full"></div> : <Download size={20} />}
                     <span>Save to Device</span>
@@ -1057,14 +1066,14 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                         <button 
                             onClick={handleNativeShare}
                             disabled={isGenerating}
-                            className="py-3 bg-skin-input hover:bg-skin-border text-skin-text rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                            className="py-3 bg-skin-input/50 hover:bg-skin-border/50 text-skin-text rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 border border-skin-border/20 backdrop-blur-sm"
                         >
                             <Share2 size={16} /> Share
                         </button>
                         <button 
                             onClick={handleCopyToClipboard}
                             disabled={isGenerating}
-                            className="py-3 bg-skin-input hover:bg-skin-border text-skin-text rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                            className="py-3 bg-skin-input/50 hover:bg-skin-border/50 text-skin-text rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 border border-skin-border/20 backdrop-blur-sm"
                         >
                             <Copy size={16} /> Copy
                         </button>
@@ -1074,16 +1083,16 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
         </div>
 
         {/* Right (Desktop) / Top (Mobile): Preview */}
-        <div className="flex-1 bg-skin-input relative flex flex-col h-[55%] md:h-full overflow-hidden">
+        <div className="flex-1 bg-skin-input/50 relative flex flex-col h-[55%] md:h-full overflow-hidden">
             <div className="absolute top-0 left-0 right-0 z-20 flex justify-between items-center p-4 bg-gradient-to-b from-skin-input/80 to-transparent pointer-events-none">
-                 <span className="bg-skin-card/90 backdrop-blur-md border border-skin-border px-4 py-1.5 rounded-full text-[10px] font-bold text-skin-muted uppercase tracking-wider shadow-sm flex items-center gap-2">
+                 <span className="bg-skin-card/80 backdrop-blur-md border border-skin-border/50 px-4 py-1.5 rounded-full text-[10px] font-bold text-skin-muted uppercase tracking-wider shadow-sm flex items-center gap-2">
                     <Check size={12} className="text-green-500"/> Live Preview
                  </span>
                  
                  <div className="pointer-events-auto">
                      <button
                         onClick={() => setIsZoomed(!isZoomed)}
-                        className="bg-black/50 hover:bg-black/70 text-white text-[10px] px-3 py-1.5 rounded-full backdrop-blur-md flex items-center gap-2 transition-colors"
+                        className="bg-black/40 hover:bg-black/60 text-white text-[10px] px-3 py-1.5 rounded-full backdrop-blur-md flex items-center gap-2 transition-colors border border-white/10"
                      >
                         {isZoomed ? <ZoomOut size={12} /> : <ZoomIn size={12} />}
                         <span>{isZoomed ? '100%' : `Fit ${(previewScale * 100).toFixed(0)}%`}</span>
@@ -1093,7 +1102,7 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
             
             <div 
                 ref={previewContainerRef}
-                className={`flex-1 w-full h-full flex ${isZoomed ? 'items-start justify-start overflow-auto p-8' : 'items-center justify-center overflow-hidden'} relative bg-skin-input`}
+                className={`flex-1 w-full h-full flex ${isZoomed ? 'items-start justify-start overflow-auto p-8' : 'items-center justify-center overflow-hidden'} relative`}
             >
                 {/* The Content Wrapper (Scaled for Preview) */}
                 <div 

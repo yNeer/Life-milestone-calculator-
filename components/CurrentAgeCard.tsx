@@ -59,8 +59,8 @@ const CurrentAgeCard: React.FC<Props> = ({ dob, tob, onShare }) => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const StatBox = ({ label, value, icon: Icon, colorClass }: any) => (
-    <div className="bg-skin-card p-3 md:p-4 rounded-xl border border-skin-border shadow-sm flex flex-col items-center justify-center text-center hover:shadow-md transition-all hover:-translate-y-1">
-      <div className={`p-2 rounded-full ${colorClass} bg-opacity-10 mb-2`}>
+    <div className="bg-skin-card/50 backdrop-blur-sm p-3 md:p-4 rounded-xl border border-skin-border/50 shadow-sm flex flex-col items-center justify-center text-center hover:shadow-md transition-all hover:-translate-y-1 group">
+      <div className={`p-2 rounded-full ${colorClass} bg-opacity-10 mb-2 group-hover:scale-110 transition-transform`}>
         <Icon className={`w-4 h-4 md:w-5 md:h-5 ${colorClass.replace('bg-', 'text-')}`} />
       </div>
       <div className="text-xl md:text-2xl font-bold text-skin-text tabular-nums break-all">
@@ -71,18 +71,18 @@ const CurrentAgeCard: React.FC<Props> = ({ dob, tob, onShare }) => {
   );
 
   return (
-    <div className="bg-skin-card rounded-xl shadow-sm border border-skin-border overflow-hidden mb-6 relative">
+    <div className="bg-skin-card/70 backdrop-blur-xl rounded-xl shadow-sm border border-white/20 overflow-hidden mb-6 relative transition-all duration-300">
         <div className="absolute top-2 right-2 z-10">
              <ShareButton 
                 title="My Life Stats" 
                 text={shareText} 
-                className="text-skin-muted hover:text-skin-primary" 
+                className="text-skin-muted hover:text-skin-primary hover:bg-skin-input/50" 
                 onClick={() => onShare("My Life Stats", shareText)}
              />
         </div>
 
         {/* Header with Live Clock */}
-        <div className="bg-skin-input p-4 border-b border-skin-border flex flex-col items-center justify-center text-center">
+        <div className="bg-skin-input/50 p-4 border-b border-skin-border/50 flex flex-col items-center justify-center text-center">
             <div className="text-xs font-semibold text-skin-muted uppercase tracking-widest mb-1">Current Time</div>
             <div className="text-2xl md:text-3xl font-mono font-bold text-skin-text tabular-nums">
                 {format(now, 'HH:mm:ss')}

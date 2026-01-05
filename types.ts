@@ -11,7 +11,8 @@ export enum MilestoneCategory {
   Minutes = 'Minutes',      // 1 million minutes
   Seconds = 'Seconds',      // 1 billion seconds
   Birthday = 'Birthday',    // Annual birthdays
-  Custom = 'Custom'         // User events
+  Anniversary = 'Anniversary', // Annual anniversaries for custom events
+  Custom = 'Custom'         // User events (Days/Hours/etc calculations)
 }
 
 export enum CustomEventCategory {

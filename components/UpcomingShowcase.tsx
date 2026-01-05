@@ -46,14 +46,14 @@ const UpcomingShowcase: React.FC<Props> = ({ milestones, onShare }) => {
   return (
     <div className="space-y-4">
         {/* Main Hero Card */}
-        <div className="w-full bg-gradient-to-r from-skin-primary to-purple-600 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden animate-in fade-in slide-in-from-bottom-4">
+        <div className="w-full bg-gradient-to-r from-skin-primary to-purple-600 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 border border-white/20">
             {/* Background Decorative Pattern */}
-            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
+            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl animate-blob"></div>
+            <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
 
             <div className="relative z-10">
                 <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-2 text-indigo-100 text-sm font-bold uppercase tracking-wider bg-white/10 px-3 py-1 rounded-full backdrop-blur-md">
+                    <div className="flex items-center gap-2 text-indigo-100 text-sm font-bold uppercase tracking-wider bg-white/10 px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
                         <Clock className="w-4 h-4" />
                         <span>Next Milestone</span>
                     </div>
@@ -67,7 +67,7 @@ const UpcomingShowcase: React.FC<Props> = ({ milestones, onShare }) => {
 
                 <div className="flex flex-col md:flex-row justify-between items-end gap-6">
                     <div className="text-left">
-                        <h2 className="text-3xl md:text-5xl font-extrabold mb-2 tracking-tight leading-tight">
+                        <h2 className="text-3xl md:text-5xl font-extrabold mb-2 tracking-tight leading-tight drop-shadow-sm">
                             {mainEvent.title}
                         </h2>
                         <p className="text-lg text-indigo-50 font-medium max-w-lg opacity-90">
@@ -91,7 +91,7 @@ const UpcomingShowcase: React.FC<Props> = ({ milestones, onShare }) => {
         {nextEvents.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 {nextEvents.map((evt, idx) => (
-                    <div key={evt.id} className="bg-skin-card border border-skin-border p-4 rounded-xl shadow-sm hover:shadow-md transition-all group">
+                    <div key={evt.id} className="bg-skin-card/60 backdrop-blur-xl border border-white/10 p-4 rounded-xl shadow-sm hover:shadow-md transition-all group hover:-translate-y-1">
                         <div className="flex justify-between items-start mb-2">
                              <div className="text-[10px] uppercase font-bold text-skin-muted tracking-wider">
                                 {idx === 0 ? 'Following' : 'Upcoming'}
@@ -106,7 +106,7 @@ const UpcomingShowcase: React.FC<Props> = ({ milestones, onShare }) => {
                         </div>
                         <h4 className="font-bold text-skin-text text-sm mb-1 line-clamp-1 group-hover:text-skin-primary transition-colors">{evt.title}</h4>
                         <p className="text-xs text-skin-muted mb-3 line-clamp-2 h-8">{evt.description}</p>
-                        <div className="flex items-center gap-1 text-xs font-medium text-skin-text bg-skin-input px-2 py-1 rounded-md w-fit">
+                        <div className="flex items-center gap-1 text-xs font-medium text-skin-text bg-skin-input/50 px-2 py-1 rounded-md w-fit">
                             <Calendar className="w-3 h-3 text-skin-primary" />
                             {format(evt.date, 'MMM d, yyyy')}
                         </div>

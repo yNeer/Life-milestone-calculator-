@@ -18,6 +18,7 @@ const CATEGORY_COLORS: Record<MilestoneCategory, string> = {
   [MilestoneCategory.Minutes]: '#8b5cf6', // Violet
   [MilestoneCategory.Seconds]: '#d946ef', // Fuchsia
   [MilestoneCategory.Birthday]: '#f43f5e', // Rose
+  [MilestoneCategory.Anniversary]: '#db2777', // Pink-700
   [MilestoneCategory.Custom]: '#eab308', // Gold
 };
 
@@ -112,6 +113,7 @@ export const calculateMilestones = (
   customEvents: CustomEvent[] = []
 ): Milestone[] => {
   const milestones: Milestone[] = [];
+  const isBirth = sourceName === "Birth";
   
   const [hours, minutes] = baseTimeStr.split(':').map(Number);
   const startDateTime = new Date(baseDate);
@@ -298,19 +300,31 @@ export const calculateMilestones = (
       }
   });
 
-  // 7. Birthdays
+  // 7. Birthdays / Anniversaries
+  const recurrenceCategory = isBirth ? MilestoneCategory.Birthday : MilestoneCategory.Anniversary;
+  
   for (let i = 1; i <= MAX_YEARS; i++) {
     const mDate = addYears(startDateTime, i);
+    
+    // Determine title and description based on source type
+    const title = isBirth 
+        ? `${i}${getOrdinalSuffix(i)} Birthday` 
+        : `${i}${getOrdinalSuffix(i)} Anniversary`;
+    
+    const desc = isBirth
+        ? `Completing orbit number ${i} around the sun.`
+        : `Celebrating ${i} year${i > 1 ? 's' : ''} of ${sourceName}.`;
+
     milestones.push({
-        id: `${sourceName}-birthday-${i}`,
+        id: `${sourceName}-recurrence-${i}`,
         value: i,
         unit: 'years',
         date: mDate,
-        category: MilestoneCategory.Birthday,
-        title: `${i}${getOrdinalSuffix(i)} Birthday`,
-        description: `Completing orbit number ${i} around the sun.`,
+        category: recurrenceCategory,
+        title: title,
+        description: desc,
         isPast: isPast(mDate),
-        color: CATEGORY_COLORS[MilestoneCategory.Birthday],
+        color: CATEGORY_COLORS[recurrenceCategory],
         sourceEventName: sourceName
     })
   }
@@ -329,12 +343,22 @@ export const getAllMilestones = (
 
   customEvents.forEach(evt => {
      const evtMilestones = calculateMilestones(evt.date, "00:00", evt.name);
-     const coloredMilestones = evtMilestones.map(m => ({
-         ...m,
-         color: CATEGORY_COLORS[MilestoneCategory.Custom], 
-         category: MilestoneCategory.Custom,
-         description: `${m.description} (since ${evt.name})`
-     }));
+     
+     // Group chronological stats (Days, Hours) under 'Custom' color for consistency
+     // But preserve the 'Anniversary' category for annual recurrences
+     const coloredMilestones = evtMilestones.map(m => {
+         const isAnniversary = m.category === MilestoneCategory.Anniversary;
+         
+         return {
+            ...m,
+            // If Anniversary, keep specific color. If Math/Days/etc for custom event, use Gold (Custom)
+            color: isAnniversary ? CATEGORY_COLORS[MilestoneCategory.Anniversary] : CATEGORY_COLORS[MilestoneCategory.Custom],
+            // If Anniversary, keep category. Else flatten to Custom for simpler filtering of "non-anniversary custom stats"
+            category: isAnniversary ? MilestoneCategory.Anniversary : MilestoneCategory.Custom,
+            description: isAnniversary ? m.description : `${m.description} (since ${evt.name})`
+         };
+     });
+     
      allMilestones = [...allMilestones, ...coloredMilestones];
   });
 
