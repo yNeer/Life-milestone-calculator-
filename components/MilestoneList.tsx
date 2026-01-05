@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { Milestone, MilestoneCategory } from '../types';
 import { format } from 'date-fns';
 import { CheckCircle2, Circle, Download, Calendar, Filter } from 'lucide-react';
-import { generateICS, downloadICS } from '../utils/calendar';
+import { downloadSingleICS } from '../utils/calendar';
 import ShareButton from './ShareButton';
 
 interface Props {
   milestones: Milestone[];
   onShare: (title: string, text: string, milestone?: Milestone) => void;
+  onExport: () => void; // To navigate to export page
 }
 
-const MilestoneList: React.FC<Props> = ({ milestones, onShare }) => {
+const MilestoneList: React.FC<Props> = ({ milestones, onShare, onExport }) => {
   const [timeFilter, setTimeFilter] = useState<'all' | 'future' | 'past'>('all');
   const [categoryFilter, setCategoryFilter] = useState<MilestoneCategory | 'All'>('All');
   
@@ -29,11 +30,6 @@ const MilestoneList: React.FC<Props> = ({ milestones, onShare }) => {
 
   const displayLimit = 100; // Reduced for performance with many items, could implement virtualization later
   const displayList = filtered.slice(0, displayLimit);
-
-  const handleExportCalendar = () => {
-    const icsContent = generateICS(filtered);
-    downloadICS('life-milestones.ics', icsContent);
-  };
 
   return (
     <div className="bg-skin-card/70 backdrop-blur-xl rounded-xl shadow-sm border border-white/20 overflow-hidden flex flex-col h-full min-h-[600px] animate-in fade-in duration-500">
@@ -81,7 +77,7 @@ const MilestoneList: React.FC<Props> = ({ milestones, onShare }) => {
             </div>
             
             <button 
-                onClick={handleExportCalendar}
+                onClick={onExport}
                 className="flex items-center justify-center gap-2 px-4 py-2 bg-skin-primary hover:opacity-90 text-white text-xs font-bold rounded-lg transition-all shadow-sm w-full sm:w-auto"
             >
                 <Download className="w-4 h-4" />
@@ -137,13 +133,22 @@ const MilestoneList: React.FC<Props> = ({ milestones, onShare }) => {
                             </span>
                         )}
                     </div>
-                    <ShareButton 
-                        title={m.title} 
-                        text={`I ${m.isPast ? 'reached' : 'will reach'} ${m.title} on ${format(m.date, 'MMM do, yyyy')}!`}
-                        className="opacity-0 group-hover:opacity-100 text-skin-muted hover:text-skin-primary"
-                        iconSize={14}
-                        onClick={() => onShare(m.title, m.description, m)}
-                    />
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                          onClick={() => downloadSingleICS(m)}
+                          className="p-2 rounded-full transition-colors text-skin-muted hover:text-skin-primary hover:bg-black/5 dark:hover:bg-white/5"
+                          title="Add to Calendar"
+                      >
+                         <Calendar size={14} />
+                      </button>
+                      <ShareButton 
+                          title={m.title} 
+                          text={`I ${m.isPast ? 'reached' : 'will reach'} ${m.title} on ${format(m.date, 'MMM do, yyyy')}!`}
+                          className="text-skin-muted hover:text-skin-primary"
+                          iconSize={14}
+                          onClick={() => onShare(m.title, m.description, m)}
+                      />
+                    </div>
                 </div>
               </div>
             </div>

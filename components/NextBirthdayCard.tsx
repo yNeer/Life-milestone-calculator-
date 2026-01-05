@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { differenceInDays, addYears, isPast, setYear, isSameDay } from 'date-fns';
+// FIX: Removed `setYear` as it's not a valid export from date-fns in some versions, causing an error.
+import { differenceInDays, addYears, isPast, isSameDay } from 'date-fns';
 import { Cake, Gift } from 'lucide-react';
 import ShareButton from './ShareButton';
 import { Milestone } from '../types';
@@ -21,7 +22,9 @@ const NextBirthdayCard: React.FC<Props> = ({ dob, onShare }) => {
     
     // Calculate next birthday
     const currentYear = now.getFullYear();
-    let nextBday = setYear(birthDate, currentYear);
+    // FIX: Replaced `setYear` with native Date methods to avoid import error.
+    let nextBday = new Date(birthDate);
+    nextBday.setFullYear(currentYear);
     
     if (isPast(nextBday) && !isSameDay(nextBday, now)) {
         nextBday = addYears(nextBday, 1);

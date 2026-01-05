@@ -14,7 +14,7 @@ interface Props {
 }
 
 const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
-  const [chartType, setChartType] = useState<'scatter' | 'bar' | 'pie' | 'birthdays'>('scatter');
+  const [chartType, setChartType] = useState<'scatter' | 'bar' | 'pie' | 'birthdays' | 'years'>('scatter');
 
   // --- Data Prep for Bar (Count by Category) ---
   const barDataRaw = milestones.reduce((acc, curr) => {
@@ -40,6 +40,32 @@ const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
         days: differenceInDays(m.date, now),
         dateStr: format(m.date, 'MMM d, yyyy')
     }));
+
+  // --- Data Prep for Yearly Chart (Stacked) ---
+  const yearlyDataMap = new Map<number, Record<string, number>>();
+  const allCategoriesSet = new Set<string>();
+
+  milestones.forEach(m => {
+    const y = m.date.getFullYear();
+    if (!yearlyDataMap.has(y)) yearlyDataMap.set(y, {});
+    
+    const cat = m.category;
+    allCategoriesSet.add(cat);
+    
+    const yearObj = yearlyDataMap.get(y)!;
+    yearObj[cat] = (yearObj[cat] || 0) + 1;
+  });
+
+  const yearlyData = Array.from(yearlyDataMap.entries())
+    .map(([year, counts]) => ({
+        year,
+        ...counts
+    }))
+    .sort((a, b) => a.year - b.year);
+
+  const yearlyCategories = Array.from(allCategoriesSet);
+  const getCategoryColor = (cat: string) => milestones.find(m => m.category === cat)?.color || '#8884d8';
+
 
   // --- Stats Calculation ---
   const currentYear = now.getFullYear();
@@ -94,6 +120,29 @@ const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
      </ResponsiveContainer>
   );
 
+  const renderYearlyChart = () => (
+     <ResponsiveContainer width="100%" height={500}>
+        <BarChart data={yearlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5}/>
+            <XAxis dataKey="year" tick={{ fontSize: 11, fill: 'var(--color-muted)' }} />
+            <YAxis tick={{ fontSize: 11, fill: 'var(--color-muted)' }} />
+            <Tooltip 
+                cursor={{fill: 'var(--color-input)'}}
+                contentStyle={{ 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--color-border)',
+                    backgroundColor: 'var(--color-card)',
+                    color: 'var(--color-text)'
+                }}
+            />
+            <Legend wrapperStyle={{ paddingTop: '20px' }}/>
+            {yearlyCategories.map(cat => (
+                <Bar key={cat} dataKey={cat} stackId="a" fill={getCategoryColor(cat)} />
+            ))}
+        </BarChart>
+     </ResponsiveContainer>
+  );
+
   const renderBirthdayChart = () => (
     <div className="h-[500px] flex flex-col justify-center">
         <h3 className="text-center text-skin-muted mb-4 text-sm font-medium uppercase tracking-wide">Days Until Next 5 Birthdays</h3>
@@ -134,7 +183,7 @@ const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
             <p className="text-sm text-skin-muted">Explore the distribution of your life events</p>
           </div>
           <div className="flex flex-wrap gap-1 bg-skin-input p-1 rounded-lg backdrop-blur-sm">
-            {(['scatter', 'bar', 'pie', 'birthdays'] as const).map(t => (
+            {(['scatter', 'bar', 'pie', 'years', 'birthdays'] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setChartType(t)}
@@ -142,7 +191,7 @@ const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
                   chartType === t ? 'bg-skin-card shadow-sm border border-skin-border text-skin-text' : 'text-skin-muted hover:text-skin-text'
                 }`}
               >
-                {t === 'birthdays' ? 'Birthday Horizon' : t}
+                {t === 'birthdays' ? 'Birthday Horizon' : t === 'years' ? 'Yearly Distribution' : t}
               </button>
             ))}
           </div>
@@ -152,6 +201,7 @@ const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
           {chartType === 'scatter' && <TimelineGraph milestones={milestones} dob={dob} />}
           {chartType === 'bar' && renderBar()}
           {chartType === 'pie' && renderPie()}
+          {chartType === 'years' && renderYearlyChart()}
           {chartType === 'birthdays' && renderBirthdayChart()}
         </div>
       </div>

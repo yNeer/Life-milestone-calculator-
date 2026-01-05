@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { UserProfile, CustomEvent, CustomEventCategory, ThemeId } from '../types';
+import { UserProfile, CustomEvent, CustomEventCategory } from '../types';
 import { themes } from '../utils/themes';
-import { User, Calendar, Clock, Plus, Trash2, Save, Camera, Upload, Download, CheckCircle, Smartphone, Palette } from 'lucide-react';
+import { User, Calendar, Clock, Plus, Trash2, Save, Camera, Upload, Download, CheckCircle, Smartphone, Palette, Image as ImageIcon } from 'lucide-react';
 
 interface Props {
   profile: UserProfile;
@@ -21,7 +21,8 @@ const ProfileView: React.FC<Props> = ({
   const [newEventName, setNewEventName] = useState('');
   const [newEventDate, setNewEventDate] = useState('');
   const [isDirty, setIsDirty] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (field: keyof UserProfile, value: string) => {
       updateProfile({ [field]: value });
@@ -29,16 +30,16 @@ const ProfileView: React.FC<Props> = ({
       setTimeout(() => setIsDirty(false), 2000); 
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'coverImage') => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2000000) {
-          alert("Image is too large. Please select an image under 2MB.");
+      if (file.size > 4000000) { // Increased limit for cover images
+          alert("Image is too large. Please select an image under 4MB.");
           return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        handleChange('avatar', reader.result as string);
+        handleChange(field, reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -99,90 +100,105 @@ const ProfileView: React.FC<Props> = ({
         )}
 
         {/* Main Profile Card */}
-        <div className="bg-skin-card/70 backdrop-blur-xl rounded-xl shadow-sm border border-white/20 p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-skin-text flex items-center gap-2">
-                    <User className="text-skin-primary" />
-                    Personal Details
-                </h2>
-                {isDirty && <span className="text-xs text-emerald-500 font-bold flex items-center gap-1"><Save size={12}/> Saved</span>}
+        <div className="bg-skin-card/70 backdrop-blur-xl rounded-xl shadow-sm border border-white/20 overflow-hidden">
+            {/* Header / Cover Image Area */}
+            <div className="relative h-48 bg-skin-base border-b border-skin-border/50 group">
+                 {profile.coverImage ? (
+                     <img src={profile.coverImage} alt="Cover" className="w-full h-full object-cover" />
+                 ) : (
+                     <div className="w-full h-full bg-gradient-to-r from-skin-primary/20 to-purple-500/20 flex items-center justify-center">
+                         <span className="text-skin-muted text-sm font-medium flex items-center gap-2"><ImageIcon size={16}/> Add Cover Image</span>
+                     </div>
+                 )}
+                 <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button 
+                        onClick={() => coverInputRef.current?.click()}
+                        className="bg-black/60 text-white px-4 py-2 rounded-full backdrop-blur-md text-sm font-bold flex items-center gap-2 hover:bg-black/80"
+                      >
+                          <Camera size={16} /> Change Cover
+                      </button>
+                 </div>
+                 <input 
+                    type="file" 
+                    ref={coverInputRef} 
+                    onChange={(e) => handleImageUpload(e, 'coverImage')} 
+                    accept="image/*" 
+                    className="hidden" 
+                 />
             </div>
 
-            <div className="flex flex-col md:flex-row gap-8 items-start">
-                
-                {/* Avatar Section */}
-                <div className="flex flex-col items-center gap-3 mx-auto md:mx-0">
-                    <div 
-                        className="relative w-32 h-32 rounded-full bg-skin-input border-4 border-skin-border/50 overflow-hidden cursor-pointer group shadow-inner"
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        {profile.avatar ? (
-                            <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center text-skin-muted">
-                                <User size={48} />
+            <div className="p-6 pt-0 relative">
+                <div className="flex justify-between items-end -mt-16 mb-6">
+                    {/* Avatar Section */}
+                    <div className="relative">
+                        <div 
+                            className="w-32 h-32 rounded-full bg-skin-card border-4 border-skin-card overflow-hidden cursor-pointer group shadow-lg"
+                            onClick={() => avatarInputRef.current?.click()}
+                        >
+                            {profile.avatar ? (
+                                <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-skin-muted bg-skin-input">
+                                    <User size={48} />
+                                </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Camera className="text-white" size={24} />
                             </div>
-                        )}
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Camera className="text-white" size={24} />
                         </div>
-                    </div>
-                    <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        onChange={handleImageUpload} 
-                        accept="image/*" 
-                        className="hidden" 
-                    />
-                    <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="text-xs font-bold text-skin-primary hover:underline flex items-center gap-1"
-                    >
-                        <Upload size={12} /> Change Photo
-                    </button>
-                </div>
-
-                {/* Form Fields */}
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                    <div className="md:col-span-2">
-                        <label className="block text-xs font-bold text-skin-muted uppercase tracking-wider mb-2">Display Name</label>
                         <input 
-                            type="text" 
-                            value={profile.name}
-                            onChange={(e) => handleChange('name', e.target.value)}
-                            placeholder="Enter your name"
-                            className="w-full p-3 bg-skin-input/50 text-skin-text border border-skin-border/50 rounded-xl focus:ring-2 focus:ring-skin-primary focus:outline-none transition-all backdrop-blur-sm"
+                            type="file" 
+                            ref={avatarInputRef} 
+                            onChange={(e) => handleImageUpload(e, 'avatar')} 
+                            accept="image/*" 
+                            className="hidden" 
                         />
                     </div>
-                     <div>
-                        <label className="block text-xs font-bold text-skin-muted uppercase tracking-wider mb-2">Date of Birth</label>
-                        <div className="relative">
-                            <Calendar className="absolute left-3 top-3.5 text-skin-muted w-4 h-4" />
+                    {isDirty && <span className="text-xs text-emerald-500 font-bold flex items-center gap-1 mb-4"><Save size={12}/> Saved Changes</span>}
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-6">
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                        <div className="md:col-span-2">
+                            <label className="block text-xs font-bold text-skin-muted uppercase tracking-wider mb-2">Display Name</label>
                             <input 
-                                type="date" 
-                                value={profile.dob} 
-                                onChange={(e) => handleChange('dob', e.target.value)}
-                                className="w-full p-3 pl-10 bg-skin-input/50 text-skin-text border border-skin-border/50 rounded-xl focus:ring-2 focus:ring-skin-primary focus:outline-none transition-all backdrop-blur-sm"
+                                type="text" 
+                                value={profile.name}
+                                onChange={(e) => handleChange('name', e.target.value)}
+                                placeholder="Enter your name"
+                                className="w-full p-3 bg-skin-input/50 text-skin-text border border-skin-border/50 rounded-xl focus:ring-2 focus:ring-skin-primary focus:outline-none transition-all backdrop-blur-sm"
                             />
                         </div>
-                    </div>
-                     <div>
-                        <label className="block text-xs font-bold text-skin-muted uppercase tracking-wider mb-2">Time of Birth</label>
-                        <div className="relative">
-                            <Clock className="absolute left-3 top-3.5 text-skin-muted w-4 h-4" />
-                            <input 
-                                type="time" 
-                                value={profile.tob} 
-                                onChange={(e) => handleChange('tob', e.target.value)}
-                                className="w-full p-3 pl-10 bg-skin-input/50 text-skin-text border border-skin-border/50 rounded-xl focus:ring-2 focus:ring-skin-primary focus:outline-none transition-all backdrop-blur-sm"
-                            />
+                        <div>
+                            <label className="block text-xs font-bold text-skin-muted uppercase tracking-wider mb-2">Date of Birth</label>
+                            <div className="relative">
+                                <Calendar className="absolute left-3 top-3.5 text-skin-muted w-4 h-4" />
+                                <input 
+                                    type="date" 
+                                    value={profile.dob} 
+                                    onChange={(e) => handleChange('dob', e.target.value)}
+                                    className="w-full p-3 pl-10 bg-skin-input/50 text-skin-text border border-skin-border/50 rounded-xl focus:ring-2 focus:ring-skin-primary focus:outline-none transition-all backdrop-blur-sm"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-skin-muted uppercase tracking-wider mb-2">Time of Birth</label>
+                            <div className="relative">
+                                <Clock className="absolute left-3 top-3.5 text-skin-muted w-4 h-4" />
+                                <input 
+                                    type="time" 
+                                    value={profile.tob} 
+                                    onChange={(e) => handleChange('tob', e.target.value)}
+                                    className="w-full p-3 pl-10 bg-skin-input/50 text-skin-text border border-skin-border/50 rounded-xl focus:ring-2 focus:ring-skin-primary focus:outline-none transition-all backdrop-blur-sm"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        {/* Theme Selector (In Profile) */}
+        {/* Theme Selector */}
         <div className="bg-skin-card/70 backdrop-blur-xl rounded-xl shadow-sm border border-white/20 p-6">
             <h2 className="text-xl font-bold text-skin-text mb-4 flex items-center gap-2">
                 <Palette className="text-skin-primary" />

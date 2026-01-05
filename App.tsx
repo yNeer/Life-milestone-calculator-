@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { differenceInSeconds } from 'date-fns';
-import InputSection from './components/InputSection';
+import { differenceInSeconds, format } from 'date-fns';
 import UpcomingShowcase from './components/UpcomingShowcase';
 import NextBirthdayCard from './components/NextBirthdayCard';
 import MilestoneList from './components/MilestoneList';
@@ -10,11 +9,12 @@ import NavBar from './components/NavBar';
 import SettingsView from './components/SettingsView';
 import ProfileView from './components/ProfileView';
 import AboutView from './components/AboutView';
+import ExportView from './components/ExportView';
 import ShareModal from './components/ShareModal';
 import { CustomEvent, ThemeId, UserProfile, Milestone } from './types';
 import { getAllMilestones } from './utils/generators';
 import { applyTheme } from './utils/themes';
-import { Info, Sparkles, CalendarRange, Download } from 'lucide-react';
+import { Info, Sparkles, CalendarRange, Download, BarChart2 } from 'lucide-react';
 import ShareButton from './components/ShareButton';
 
 const STORAGE_KEY = 'life_milestones_data';
@@ -40,7 +40,7 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved).customEvents.map((e: any) => ({...e, date: new Date(e.date)})) : [];
   });
 
-  const [currentView, setCurrentView] = useState<'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about' | 'export'>('dashboard');
   
   // Share Modal State
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -122,9 +122,21 @@ const App: React.FC = () => {
     return getAllMilestones(new Date(profile.dob), profile.tob, customEvents);
   }, [profile.dob, profile.tob, customEvents]);
 
-  const milestonesThisYear = useMemo(() => {
+  const yearlyOutlook = useMemo(() => {
       const currentYear = new Date().getFullYear();
-      return milestones.filter(m => m.date.getFullYear() === currentYear);
+      const outlook: { year: number, count: number }[] = [];
+      for(let i = 0; i < 3; i++) {
+          const year = currentYear + i;
+          outlook.push({
+              year: year,
+              count: milestones.filter(m => m.date.getFullYear() === year).length
+          });
+      }
+      return outlook;
+  }, [milestones]);
+
+  const nextFiveMilestones = useMemo(() => {
+      return milestones.filter(m => !m.isPast).slice(0, 5);
   }, [milestones]);
 
   // --- Render Logic ---
@@ -136,7 +148,9 @@ const App: React.FC = () => {
       case 'visualizations':
         return <VisualizationsPage milestones={milestones} dob={new Date(profile.dob)} />;
       case 'list':
-        return <MilestoneList milestones={milestones} onShare={openShare} />; 
+        return <MilestoneList milestones={milestones} onShare={openShare} onExport={() => setCurrentView('export')} />; 
+      case 'export':
+        return <ExportView milestones={milestones} userName={profile.name} />;
       case 'profile':
         return (
           <ProfileView 
@@ -162,7 +176,7 @@ const App: React.FC = () => {
                      <UpcomingShowcase milestones={milestones} onShare={openShare} />
                </div>
 
-              <div className="bg-skin-card/70 backdrop-blur-xl p-6 rounded-xl shadow-sm border border-white/20">
+              <div className="bg-skin-card/50 backdrop-blur-2xl p-6 rounded-xl shadow-sm border border-white/20">
                 <h3 className="text-xl font-bold text-skin-text mb-1">Hello, {profile.name || 'Friend'}!</h3>
                 <p className="text-sm text-skin-muted mb-4">You are viewing your life timeline.</p>
                 <button 
@@ -177,35 +191,28 @@ const App: React.FC = () => {
               <NextBirthdayCard dob={profile.dob} onShare={openShare} />
 
               {/* Year Stats Card */}
-              <div className="bg-skin-card/70 backdrop-blur-xl p-5 rounded-xl shadow-sm border border-white/20 relative overflow-hidden group">
+              <div className="bg-skin-card/50 backdrop-blur-2xl p-5 rounded-xl shadow-sm border border-white/20 relative overflow-hidden group">
                   <div className="absolute top-0 right-0 p-8 opacity-5">
-                      <CalendarRange size={100} className="text-skin-text"/>
+                      <BarChart2 size={100} className="text-skin-text"/>
                   </div>
-                  <h3 className="font-semibold flex items-center gap-2 mb-2 text-skin-text relative z-10">
+                  <h3 className="font-semibold flex items-center gap-2 mb-3 text-skin-text relative z-10">
                     <CalendarRange className="w-5 h-5 text-skin-primary" />
-                    {new Date().getFullYear()} Overview
+                    Yearly Outlook
                   </h3>
-                  <div className="relative z-10">
-                      <div className="text-3xl font-bold text-skin-text">{milestonesThisYear.length}</div>
-                      <p className="text-sm text-skin-muted">Milestones happening this year</p>
+                  <div className="relative z-10 space-y-2">
+                      {yearlyOutlook.map(yearData => (
+                          <div key={yearData.year} className="flex justify-between items-center text-sm">
+                              <span className="font-medium text-skin-muted">{yearData.year}:</span>
+                              <span className="font-bold text-skin-text bg-skin-input/50 px-2 py-0.5 rounded-md">{yearData.count} milestones</span>
+                          </div>
+                      ))}
                   </div>
                   <button 
-                    onClick={() => setCurrentView('list')}
+                    onClick={() => setCurrentView('visualizations')}
                     className="mt-4 text-xs font-bold text-skin-primary hover:underline relative z-10"
                   >
-                    View Calendar →
+                    View Full Analysis →
                   </button>
-              </div>
-
-              <div className="bg-skin-card/70 backdrop-blur-xl p-5 rounded-xl shadow-sm border border-white/20">
-                <h3 className="font-semibold flex items-center gap-2 mb-2 text-skin-text">
-                  <Info className="w-4 h-4 text-skin-primary" />
-                  About the Math
-                </h3>
-                <p className="text-sm text-skin-muted leading-relaxed">
-                  We calculate milestones based on <strong>Powers of 10</strong>, <strong>Repdigits</strong> (e.g. 11,111), 
-                  <strong>Sequences</strong> (12345), and mathematical constants like <strong>π</strong> and <strong>Fibonacci</strong>.
-                </p>
               </div>
             </div>
 
@@ -216,39 +223,47 @@ const App: React.FC = () => {
               </div>
               
               {/* Short Preview List on Dashboard */}
-              <div className="bg-skin-card/70 backdrop-blur-xl rounded-xl shadow-sm border border-white/20 p-6">
+              <div className="bg-skin-card/50 backdrop-blur-2xl rounded-xl shadow-sm border border-white/20 p-6">
                   <div className="flex justify-between items-center mb-4">
                       <h3 className="font-bold text-skin-text flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-amber-500" />
-                        Recent Highlights
+                        Next 5 Milestones
                       </h3>
                       <button onClick={() => setCurrentView('list')} className="text-sm text-skin-primary font-medium hover:underline">View All</button>
                   </div>
-                  <div className="space-y-3">
-                      {milestones
-                        .filter(m => m.date > new Date(new Date().setDate(new Date().getDate() - 30))) // last 30 days and future
-                        .filter(m => m.isPast || differenceInSeconds(m.date, new Date()) < 2592000) // Recent past or near future
-                        .sort((a,b) => Math.abs(a.date.getTime() - new Date().getTime()) - Math.abs(b.date.getTime() - new Date().getTime())) // Sort by closeness to now
-                        .slice(0, 5) // Show top 5 relevant
-                        .map(m => (
-                          <div key={m.id} className="flex justify-between text-sm border-b border-skin-border/50 pb-2 last:border-0 hover:bg-skin-base/30 p-2 rounded-lg transition-colors group">
-                             <div className="flex flex-col">
-                                <span className={m.isPast ? "text-skin-muted line-through opacity-70" : "text-skin-text font-medium"}>{m.title}</span>
-                                <span className="text-[10px] text-skin-muted uppercase font-bold">{m.category}</span>
-                             </div>
-                             <div className="flex items-center gap-4">
-                                <span className="text-skin-muted opacity-80 text-xs">{m.date.toLocaleDateString()}</span>
-                                <ShareButton 
-                                    title={m.title} 
-                                    text={m.description} 
-                                    className="opacity-0 group-hover:opacity-100" 
-                                    iconSize={14} 
-                                    onClick={() => openShare(m.title, m.description, m)}
-                                />
-                             </div>
-                          </div>
-                        ))
-                      }
+                  <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left">
+                          <thead className="border-b border-skin-border/50 text-xs text-skin-muted uppercase">
+                            <tr>
+                                <th className="py-2 px-3">Event</th>
+                                <th className="py-2 px-3">Date</th>
+                                <th className="py-2 px-3">Category</th>
+                                <th className="py-2 px-3 text-right"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {nextFiveMilestones.map(m => (
+                                <tr key={m.id} className="border-b border-skin-border/50 last:border-0 hover:bg-skin-base/50 group">
+                                    <td className="py-3 px-3 font-medium text-skin-text">{m.title}</td>
+                                    <td className="py-3 px-3 text-skin-muted whitespace-nowrap">{format(m.date, 'dd MMM yyyy')}</td>
+                                    <td className="py-3 px-3">
+                                        <span className="text-[10px] uppercase font-bold text-skin-muted bg-skin-base/50 border border-skin-border/50 px-1.5 py-0.5 rounded backdrop-blur-sm">
+                                            {m.category}
+                                        </span>
+                                    </td>
+                                    <td className="py-3 px-3 text-right">
+                                        <ShareButton 
+                                            title={m.title} 
+                                            text={m.description} 
+                                            className="opacity-0 group-hover:opacity-100" 
+                                            iconSize={14} 
+                                            onClick={() => openShare(m.title, m.description, m)}
+                                        />
+                                    </td>
+                                </tr>
+                            ))}
+                          </tbody>
+                      </table>
                   </div>
               </div>
             </div>
