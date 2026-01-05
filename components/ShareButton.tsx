@@ -26,8 +26,17 @@ const ShareButton: React.FC<Props> = ({ title, text, className = "", iconSize = 
           title: title,
           text: text,
         });
-      } catch (err) {
-        console.log('Error sharing:', err);
+      } catch (err: any) {
+         // Ignore user cancellation and benign errors
+         if (
+             err.name === 'AbortError' || 
+             err.name === 'NotAllowedError' ||
+             err.message.toLowerCase().includes('cancel') ||
+             err.message.toLowerCase().includes('gesture')
+         ) {
+             return;
+         }
+         console.warn('Share failed:', err);
       }
     } else {
       try {

@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { X, Download, Video, Image as ImageIcon, Check, Palette, Film, Instagram, Smartphone, Square, Activity, Move, Sparkles, Timer, Calendar, ZoomIn, Monitor, Gauge, Share2, Copy, AlertCircle } from 'lucide-react';
+import { X, Download, Video, Image as ImageIcon, Check, Palette, Film, Instagram, Smartphone, Square, Activity, Move, Sparkles, Timer, Calendar, ZoomIn, ZoomOut, Monitor, Gauge, Share2, Copy, AlertCircle, Maximize, LayoutTemplate, AlignLeft, AlignCenter, Type, Box, Globe, Sun, Watch } from 'lucide-react';
 import html2canvas from 'html2canvas';
-import { Milestone, UserProfile } from '../types';
+import { Milestone, UserProfile, ThemeId } from '../types';
 import { format, differenceInDays } from 'date-fns';
 import { themes } from '../utils/themes';
 import Logo from './Logo';
@@ -16,12 +16,16 @@ interface Props {
   allMilestones?: Milestone[];
 }
 
+type TemplateType = 'classic' | 'modern' | 'bold' | 'minimal';
+
 const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, userProfile, allMilestones = [] }) => {
   // --- State ---
   const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16'>('1:1');
   const [formatType, setFormatType] = useState<'image' | 'video'>('image');
-  const [imageQuality, setImageQuality] = useState<'1080p' | '4K'>('1080p');
-  const [useTheme, setUseTheme] = useState(false);
+  const [imageQuality, setImageQuality] = useState<'1080p' | '4K' | 'Max'>('1080p');
+  const [activeThemeId, setActiveThemeId] = useState<ThemeId>(userProfile.theme);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('classic');
+  const [showStats, setShowStats] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [duration, setDuration] = useState<5 | 10 | 15 | 30 | 60>(5);
   const [animStyle, setAnimStyle] = useState<'particles' | 'rolling' | 'pulse'>('particles');
@@ -29,10 +33,12 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
   
   // Preview Scaling State
   const [previewScale, setPreviewScale] = useState(1);
+  const [isZoomed, setIsZoomed] = useState(false);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
   // Refs
-  const cardRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);      // For Preview
+  const exportRef = useRef<HTMLDivElement>(null);    // For High-Res Capture (Off-screen)
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const avatarImgRef = useRef<HTMLImageElement | null>(null);
@@ -52,7 +58,9 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
 
   const getExportDimensions = () => {
       const base = getBaseDimensions();
-      const multiplier = imageQuality === '4K' ? 2 : 1; // 1080p * 2 = 2160p (4K width standard for vertical)
+      let multiplier = 1;
+      if (imageQuality === '4K') multiplier = 2;
+      if (imageQuality === 'Max') multiplier = 4; // ~4320px width
       return { w: base.w * multiplier, h: base.h * multiplier, scale: multiplier };
   };
 
@@ -67,6 +75,23 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
       if (diff < 0) dayMsg = `${Math.abs(diff)}days_ago`;
 
       return `${safeName}_${safeTitle}_${dayMsg}.${ext}`;
+  };
+
+  const calculateCosmicStats = (targetDate: Date) => {
+      const dob = new Date(userProfile.dob);
+      const [h, m] = userProfile.tob.split(':').map(Number);
+      dob.setHours(h || 0, m || 0);
+
+      const diffMs = Math.abs(targetDate.getTime() - dob.getTime());
+      const totalDays = diffMs / (1000 * 60 * 60 * 24);
+      
+      return {
+          earthRotations: Math.floor(totalDays), // 1 rotation per day
+          sunOrbits: (totalDays / 365.2422).toFixed(2), // Solar years
+          hourHand: Math.floor((totalDays * 24) / 12), // 1 rotation every 12 hours
+          minuteHand: Math.floor(totalDays * 24), // 1 rotation every hour
+          secondHand: Math.floor(totalDays * 24 * 60) // 1 rotation every minute
+      };
   };
 
   // --- Effects ---
@@ -84,7 +109,7 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
               const { clientWidth, clientHeight } = previewContainerRef.current;
               setContainerSize({ w: clientWidth, h: clientHeight });
 
-              const padding = 40;
+              const padding = 20; // Small padding
               const availW = clientWidth - padding;
               const availH = clientHeight - padding;
               
@@ -93,6 +118,7 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
               const scaleX = availW / w;
               const scaleY = availH / h;
               
+              // Scale to fit, but max 95% of container
               setPreviewScale(Math.min(scaleX, scaleY, 0.95)); 
           }
       };
@@ -104,7 +130,7 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
           setTimeout(handleResize, 100);
       }
       return () => window.removeEventListener('resize', handleResize);
-  }, [isOpen, aspectRatio, formatType]); // Recalc on aspect ratio change
+  }, [isOpen, aspectRatio, formatType]); 
 
   useEffect(() => {
     if (isOpen) setSelectedMilestone(milestone);
@@ -128,7 +154,7 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
         startCanvasAnimation();
     }
     return () => cancelAnimationFrame(rafRef.current);
-  }, [isOpen, formatType, aspectRatio, useTheme, userProfile.avatar, animStyle, selectedMilestone]); 
+  }, [isOpen, formatType, aspectRatio, activeThemeId, userProfile.avatar, animStyle, selectedMilestone, selectedTemplate, showStats]); 
 
 
   // --- Canvas Logic ---
@@ -142,22 +168,12 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
       canvas.width = w;
       canvas.height = h;
 
-      const appTheme = themes[userProfile.theme];
-      let bgGradientStart = '#4f46e5';
-      let bgGradientEnd = '#9333ea';
-      let textColor = '#ffffff';
-
-      if (useTheme) {
-         bgGradientStart = appTheme.colors.base; 
-         if (['amoled', 'cyberpunk', 'futuristic'].includes(userProfile.theme)) {
-             bgGradientStart = appTheme.colors.base;
-             bgGradientEnd = appTheme.colors.card;
-         } else {
-             bgGradientStart = appTheme.colors.base;
-             bgGradientEnd = appTheme.colors.input;
-         }
-         textColor = appTheme.colors.text;
-      }
+      const currentTheme = themes[activeThemeId];
+      // Use theme colors
+      const bgGradientStart = currentTheme.colors.base;
+      const bgGradientEnd = currentTheme.colors.card; 
+      const textColor = currentTheme.colors.text;
+      const primaryColor = currentTheme.colors.primary;
 
       const particles = Array.from({ length: 60 }).map(() => ({
           x: Math.random() * w,
@@ -169,6 +185,8 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
 
       const activeMilestone = selectedMilestone || { title, description: text, date: new Date(), value: 0, unit: 'days' };
       const displayDate = selectedMilestone ? format(selectedMilestone.date, 'MMMM do, yyyy') : text;
+      
+      const stats = calculateCosmicStats(activeMilestone.date);
 
       const render = (time: number) => {
           const elapsed = time - startTimeRef.current;
@@ -187,11 +205,11 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                   if (p.y < 0) p.y = h;
                   ctx.beginPath();
                   ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                  ctx.fillStyle = useTheme ? `${textColor}20` : p.color;
+                  ctx.fillStyle = `${textColor}20`;
                   ctx.fill();
               });
           } else if (animStyle === 'rolling') {
-               ctx.strokeStyle = useTheme ? `${textColor}10` : 'rgba(255,255,255,0.1)';
+               ctx.strokeStyle = `${textColor}10`;
                ctx.lineWidth = 2;
                const offset = (elapsed * 0.05) % 100;
                for(let i=0; i<w; i+=100) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke(); }
@@ -202,50 +220,61 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
           if (animStyle === 'pulse') scale = 1 + 0.02 * Math.sin(elapsed * 0.003);
 
           ctx.save();
-          ctx.translate(w/2, h/2);
-          ctx.scale(scale, scale);
-          ctx.translate(-w/2, -h/2);
           
-          ctx.textAlign = 'center';
-          ctx.fillStyle = useTheme ? textColor : '#ffffff';
+          let titleY = h * 0.45;
+          let textAlign: CanvasTextAlign = 'center';
+          let titleX = w / 2;
           
-          const avatarSize = 180;
-          const avatarY = h/2 - 220;
-          
-          if (avatarImgRef.current) {
-              ctx.save();
-              ctx.beginPath();
-              ctx.arc(w/2, avatarY, avatarSize/2, 0, Math.PI * 2);
-              ctx.closePath();
-              ctx.clip();
-              ctx.drawImage(avatarImgRef.current, w/2 - avatarSize/2, avatarY - avatarSize/2, avatarSize, avatarSize);
-              ctx.restore();
-              ctx.beginPath();
-              ctx.arc(w/2, avatarY, avatarSize/2, 0, Math.PI * 2);
-              ctx.strokeStyle = useTheme ? textColor : '#ffffff';
-              ctx.lineWidth = 8;
-              ctx.stroke();
-          } else {
-              ctx.beginPath();
-              ctx.arc(w/2, avatarY, 60, 0, 2 * Math.PI);
-              ctx.strokeStyle = useTheme ? textColor : '#ffffff';
-              ctx.lineWidth = 6;
-              ctx.stroke();
-              ctx.beginPath();
-              ctx.moveTo(w/2 - 20, avatarY - 20);
-              ctx.lineTo(w/2, avatarY + 20);
-              ctx.lineTo(w/2 + 20, avatarY - 20);
-              ctx.stroke();
+          if (selectedTemplate === 'modern') {
+              textAlign = 'left';
+              titleX = 100;
+              titleY = h * 0.4;
+          } else if (selectedTemplate === 'minimal') {
+              textAlign = 'center';
+              titleX = w / 2;
+              titleY = h * 0.55;
+          } else if (selectedTemplate === 'bold') {
+              textAlign = 'center';
+              titleX = w / 2;
+              titleY = h * 0.5;
           }
 
-          ctx.font = 'bold 50px Inter, sans-serif';
-          ctx.globalAlpha = 0.8;
-          ctx.fillText("Life Milestone", w/2, h/2 - 60);
+          // Avatar logic...
+          if (selectedTemplate !== 'bold') {
+            const avatarSize = 180;
+            let avatarX = w/2;
+            let avatarY = h * 0.25;
+            
+            if (selectedTemplate === 'modern') { avatarX = 190; avatarY = h * 0.2; } 
+            else if (selectedTemplate === 'minimal') { avatarY = h * 0.3; }
+
+            ctx.save();
+            ctx.translate(avatarX, avatarY);
+            ctx.scale(scale, scale); 
+            if (avatarImgRef.current) {
+                ctx.beginPath(); ctx.arc(0, 0, avatarSize/2, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
+                ctx.drawImage(avatarImgRef.current, -avatarSize/2, -avatarSize/2, avatarSize, avatarSize);
+                ctx.beginPath(); ctx.arc(0, 0, avatarSize/2, 0, Math.PI * 2);
+                ctx.strokeStyle = textColor; ctx.lineWidth = 8; ctx.stroke();
+            } else {
+               ctx.beginPath(); ctx.arc(0, 0, 80, 0, Math.PI*2); ctx.fillStyle = `${textColor}20`; ctx.fill();
+            }
+            ctx.restore();
+          }
+
+          ctx.textAlign = textAlign;
+          ctx.fillStyle = textColor;
+          
+          // Pre-Title
+          ctx.font = 'bold 40px Inter, sans-serif';
+          ctx.globalAlpha = 0.7;
+          let preTitleY = titleY - 80;
+          if (selectedTemplate === 'bold') preTitleY = titleY - 150;
+          ctx.fillText("MILESTONE REACHED", titleX, preTitleY);
           ctx.globalAlpha = 1.0;
 
-          ctx.font = 'bold 90px Inter, sans-serif';
+          // Main Title
           let displayTitle = activeMilestone.title;
-          
           if (animStyle === 'rolling' && 'value' in activeMilestone) {
               const targetValue = activeMilestone.value;
               if (targetValue && typeof targetValue === 'number') {
@@ -257,39 +286,67 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                   else displayTitle = currentVal.toLocaleString();
               }
           }
-          
-          const maxWidth = w * 0.8;
+
+          // Font Sizing - adjusted for fit
+          let fontSize = 90;
+          if (selectedTemplate === 'bold') fontSize = 130;
+          if (selectedTemplate === 'minimal') fontSize = 70;
+          ctx.font = `900 ${fontSize}px Inter, sans-serif`;
+
+          // Text Wrapping
+          const maxWidth = selectedTemplate === 'modern' ? w - 200 : w * 0.8;
           const words = displayTitle.split(' ');
           let line = '';
           const lines = [];
           for(let n = 0; n < words.length; n++) {
             const testLine = line + words[n] + ' ';
             const metrics = ctx.measureText(testLine);
-            const testWidth = metrics.width;
-            if (testWidth > maxWidth && n > 0) { lines.push(line); line = words[n] + ' '; } 
+            if (metrics.width > maxWidth && n > 0) { lines.push(line); line = words[n] + ' '; } 
             else { line = testLine; }
           }
           lines.push(line);
 
           lines.forEach((lineText, i) => {
-             const yOffset = (i - (lines.length-1)/2) * 100;
-             ctx.fillText(lineText, w/2, h/2 + 50 + yOffset);
+             const lineHeight = fontSize * 1.1;
+             const yOffset = (i - (lines.length-1)/2) * lineHeight;
+             const finalY = selectedTemplate === 'modern' ? titleY + (i * lineHeight) : titleY + 50 + yOffset;
+             ctx.fillText(lineText, titleX, finalY);
           });
 
-          ctx.font = '36px Inter, sans-serif';
-          ctx.globalAlpha = 0.9;
-          const descY = h/2 + 50 + (lines.length * 50) + 40;
-          ctx.fillText(displayDate, w/2, descY);
+          // Date 
+          ctx.font = 'bold 40px Inter, sans-serif';
+          ctx.fillStyle = primaryColor;
+          let footerY = h * 0.85;
+          if (showStats) footerY = h * 0.78; 
+          
+          ctx.fillText(displayDate, titleX, footerY);
+
+          // User Name
+          ctx.font = '30px Inter, sans-serif';
+          ctx.fillStyle = textColor;
+          ctx.globalAlpha = 0.6;
+          ctx.fillText(userProfile.name, titleX, footerY + 50);
           ctx.globalAlpha = 1.0;
+
+          // --- Cosmic Stats (Canvas) ---
+          if (showStats) {
+             ctx.save();
+             ctx.font = '24px Inter, sans-serif'; 
+             ctx.fillStyle = textColor;
+             ctx.globalAlpha = 0.8;
+             
+             const statText = `🌍 ${stats.earthRotations.toLocaleString()} Rotations  •  ☀️ ${stats.sunOrbits} Orbits`;
+             const clockText = `⌚ ${stats.hourHand.toLocaleString()}h • ${stats.minuteHand.toLocaleString()}m • ${stats.secondHand.toLocaleString()}s`;
+             
+             let statY = h - 100;
+             if (selectedTemplate === 'modern') statY = h - 120;
+
+             ctx.fillText(statText, titleX, statY);
+             ctx.fillText(clockText, titleX, statY + 35);
+             ctx.restore();
+          }
+
           ctx.restore();
-
-          ctx.font = '24px Inter, sans-serif';
-          ctx.fillStyle = useTheme ? textColor : 'rgba(255,255,255,0.7)';
-          ctx.globalAlpha = 0.7;
-          ctx.fillText(`Calculated for ${userProfile.name}`, w/2, h - 80);
-          ctx.fillText("via Life Milestones App", w/2, h - 40);
-          ctx.globalAlpha = 1.0;
-
           rafRef.current = requestAnimationFrame(render);
       };
       
@@ -299,15 +356,43 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
   // --- Actions ---
 
   const generateImageBlob = async (): Promise<Blob | null> => {
-      if (!cardRef.current) return null;
+      // Use the off-screen exportRef for high quality capture
+      const targetRef = exportRef.current; 
+      if (!targetRef) return null;
+      
+      const { w, h } = getBaseDimensions();
       const { scale } = getExportDimensions();
       
-      const canvas = await html2canvas(cardRef.current, { 
+      // Force wait for images
+      const images = targetRef.querySelectorAll('img');
+      await Promise.all(Array.from(images).map((node) => {
+          const img = node as HTMLImageElement;
+          if (img.complete) return Promise.resolve();
+          return new Promise((resolve) => { 
+            img.onload = () => resolve(null); 
+            img.onerror = () => resolve(null); 
+          });
+      }));
+
+      const canvas = await html2canvas(targetRef, { 
           scale: scale, 
           useCORS: true, 
           backgroundColor: null,
           allowTaint: true,
-          logging: false
+          logging: false,
+          width: w,
+          height: h,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: w,
+          windowHeight: h,
+          onclone: (clonedDoc) => {
+              const el = clonedDoc.getElementById('export-container');
+              if (el) {
+                  el.style.transform = 'none';
+                  el.style.opacity = '1';
+              }
+          }
       });
       return new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
   };
@@ -368,26 +453,49 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
 
   const handleNativeShare = async () => {
       setIsGenerating(true);
-      if (formatType === 'image') {
-          const blob = await generateImageBlob();
-          if (blob) {
-              const file = new File([blob], generateFilename('png'), { type: 'image/png' });
-              if (navigator.share && navigator.canShare({ files: [file] })) {
-                  try {
-                      await navigator.share({
-                          files: [file],
-                          title: 'Life Milestone',
-                          text: `Check out this milestone: ${selectedMilestone?.title}`
-                      });
-                  } catch (e) { console.error(e); }
-              } else {
-                  alert("Native sharing not supported on this device. Try downloading.");
-              }
-          }
-      } else {
-          alert("Direct video sharing is not supported in browser. Please download the video first.");
+      try {
+        if (formatType === 'image') {
+            const blob = await generateImageBlob();
+            if (blob) {
+                const file = new File([blob], generateFilename('png'), { type: 'image/png' });
+                const shareData = {
+                    files: [file],
+                    title: 'Life Milestone',
+                    text: `Check out this milestone: ${selectedMilestone?.title}`
+                };
+
+                // Check if sharing is supported
+                if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
+                    try {
+                        await navigator.share(shareData);
+                    } catch (e: any) {
+                        // Ignore user cancellation and benign errors
+                        if (
+                            e.name === 'AbortError' || 
+                            e.name === 'NotAllowedError' ||
+                            e.message.toLowerCase().includes('cancel') ||
+                            e.message.toLowerCase().includes('gesture')
+                        ) {
+                            return;
+                        }
+                        
+                        console.warn('Share error:', e);
+                        // Fallback logic could be added here if needed
+                        alert("Could not share automatically. Please use the 'Save to Device' button.");
+                    }
+                } else {
+                    alert("Native sharing not supported on this device. Try downloading.");
+                }
+            }
+        } else {
+            alert("Direct video sharing is not supported in browser. Please download the video first.");
+        }
+      } catch (error) {
+          console.error("Error preparing share:", error);
+          alert("An error occurred while preparing the image.");
+      } finally {
+          setIsGenerating(false);
       }
-      setIsGenerating(false);
   };
 
   const handleCopyToClipboard = async () => {
@@ -418,6 +526,278 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
 
   const activeMilestone = selectedMilestone || { title, description: text, date: new Date(), value: 0, unit: '', isPast: false, id: 'temp', category: 'Custom' as any, color: '#fff' };
   const { w: baseW, h: baseH } = getBaseDimensions();
+  
+  // Theme Helper
+  const currentTheme = themes[activeThemeId];
+
+  // Stats Data
+  const stats = calculateCosmicStats(activeMilestone.date);
+
+  // --- HTML TEMPLATES ---
+  
+  const renderCardHTML = () => {
+      const commonContainerStyles = {
+          width: '100%',
+          height: '100%',
+          position: 'relative' as const,
+          overflow: 'hidden',
+          background: currentTheme.colors.base,
+          color: currentTheme.colors.text,
+      };
+
+      const bgPattern = (
+          <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay pointer-events-none"></div>
+      );
+      
+      const gradientOverlay = (
+          <div 
+            className="absolute inset-0 opacity-30 pointer-events-none" 
+            style={{ background: `linear-gradient(135deg, ${currentTheme.colors.primary} 0%, transparent 100%)` }} 
+          />
+      );
+
+      const avatarEl = userProfile.avatar ? (
+        <img 
+            src={userProfile.avatar} 
+            alt="Me" 
+            className="w-full h-full object-cover" 
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-white/10">
+             <Logo className="w-1/2 h-1/2 opacity-90" />
+        </div>
+      );
+
+      // Render the Cosmic Stats Block (Reusable)
+      const renderCosmicStatsBlock = (style: 'grid' | 'row' | 'minimal') => {
+          if (!showStats) return null;
+          
+          if (style === 'grid') {
+            return (
+                <div className="mt-8 grid grid-cols-2 gap-4 w-full max-w-2xl px-8">
+                     <div className="bg-skin-card/20 backdrop-blur-sm p-3 rounded-lg border border-skin-border/20 text-left">
+                        <div className="text-xs uppercase opacity-70 font-bold mb-1 flex items-center gap-1"><Globe size={12}/> Earth Rotations</div>
+                        <div className="text-xl font-mono font-bold">{stats.earthRotations.toLocaleString()}</div>
+                     </div>
+                     <div className="bg-skin-card/20 backdrop-blur-sm p-3 rounded-lg border border-skin-border/20 text-left">
+                        <div className="text-xs uppercase opacity-70 font-bold mb-1 flex items-center gap-1"><Sun size={12}/> Sun Orbits</div>
+                        <div className="text-xl font-mono font-bold">{stats.sunOrbits}</div>
+                     </div>
+                     <div className="col-span-2 bg-skin-card/20 backdrop-blur-sm p-3 rounded-lg border border-skin-border/20 text-left flex justify-between items-center">
+                         <div>
+                            <div className="text-xs uppercase opacity-70 font-bold mb-1 flex items-center gap-1"><Watch size={12}/> Clock Rotations</div>
+                            <div className="text-sm font-mono opacity-90">
+                                {stats.hourHand.toLocaleString()}h • {stats.minuteHand.toLocaleString()}m • {stats.secondHand.toLocaleString()}s
+                            </div>
+                         </div>
+                     </div>
+                </div>
+            )
+          }
+
+          if (style === 'minimal') {
+              return (
+                  <div className="mt-12 text-center w-full max-w-3xl border-t border-dashed border-skin-border/30 pt-6">
+                      <div className="grid grid-cols-3 divide-x divide-skin-border/30">
+                          <div className="px-4">
+                              <div className="text-3xl font-light">{stats.earthRotations.toLocaleString()}</div>
+                              <div className="text-xs uppercase tracking-widest opacity-50">Earth Rotations</div>
+                          </div>
+                           <div className="px-4">
+                              <div className="text-3xl font-light">{stats.sunOrbits}</div>
+                              <div className="text-xs uppercase tracking-widest opacity-50">Solar Orbits</div>
+                          </div>
+                           <div className="px-4">
+                              <div className="text-3xl font-light">{stats.hourHand.toLocaleString()}</div>
+                              <div className="text-xs uppercase tracking-widest opacity-50">Hour Cycles</div>
+                          </div>
+                      </div>
+                  </div>
+              )
+          }
+
+          // Row style (default/modern)
+          return (
+              <div className="mt-auto pt-6 w-full border-t border-skin-border/20 flex justify-between items-end text-sm opacity-80">
+                  <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2"><Globe size={14} /> {stats.earthRotations.toLocaleString()} Earth Rotations</div>
+                      <div className="flex items-center gap-2"><Sun size={14} /> {stats.sunOrbits} Solar Orbits</div>
+                  </div>
+                  <div className="text-right flex flex-col gap-1">
+                      <div className="flex items-center justify-end gap-2">{stats.hourHand.toLocaleString()} Hour Cycles <Watch size={14} /></div>
+                      <div className="text-xs opacity-70">{stats.minuteHand.toLocaleString()}m / {stats.secondHand.toLocaleString()}s hands</div>
+                  </div>
+              </div>
+          )
+      };
+
+      // --- 1. CLASSIC TEMPLATE ---
+      if (selectedTemplate === 'classic') {
+          return (
+            <div style={commonContainerStyles} className="flex flex-col items-center justify-center text-center p-12 transition-colors duration-500">
+                {bgPattern}
+                {gradientOverlay}
+                
+                <div className="relative z-10 flex flex-col items-center gap-6 w-full max-w-4xl mx-auto h-full justify-center">
+                    <div 
+                        className="w-32 h-32 rounded-full border-4 shadow-xl overflow-hidden shrink-0"
+                        style={{ borderColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.card }}
+                    >
+                        {avatarEl}
+                    </div>
+                    
+                    <div 
+                        className="uppercase tracking-[0.2em] text-xl font-bold opacity-60 border-y-2 py-3 px-10"
+                        style={{ borderColor: currentTheme.colors.border }}
+                    >
+                        Milestone Reached
+                    </div>
+                    
+                    <h2 
+                        className="text-7xl font-black leading-none tracking-tight break-words w-full drop-shadow-sm line-clamp-3"
+                        style={{ color: currentTheme.colors.text }}
+                    >
+                        {activeMilestone.title}
+                    </h2>
+                    
+                    <div 
+                        className="px-8 py-4 rounded-xl border backdrop-blur-md shadow-lg mb-2"
+                        style={{ backgroundColor: `${currentTheme.colors.card}60`, borderColor: currentTheme.colors.border }}
+                    >
+                        <span className="font-mono text-4xl font-bold" style={{ color: currentTheme.colors.primary }}>
+                            {activeMilestone.date ? format(activeMilestone.date, 'MMMM do, yyyy') : 'Today'}
+                        </span>
+                    </div>
+
+                    {renderCosmicStatsBlock('grid')}
+                </div>
+                
+                <div className="absolute bottom-6 text-sm uppercase tracking-widest opacity-50 font-bold">
+                     Calculated for {userProfile.name}
+                </div>
+            </div>
+          );
+      }
+
+      // --- 2. MODERN TEMPLATE (Left Aligned) ---
+      if (selectedTemplate === 'modern') {
+          return (
+             <div style={commonContainerStyles} className="flex flex-col justify-between p-16 text-left transition-colors duration-500">
+                {bgPattern}
+                
+                {/* Top Section */}
+                <div className="relative z-10 flex justify-between items-start w-full">
+                     <div className="flex flex-col gap-2">
+                        <div className="text-3xl font-bold opacity-60 uppercase tracking-widest">Milestone</div>
+                        <div className="text-xl opacity-50">{format(new Date(), 'EEEE, MMMM do')}</div>
+                     </div>
+                     <div 
+                        className="w-24 h-24 rounded-2xl overflow-hidden shadow-lg border-2"
+                        style={{ borderColor: currentTheme.colors.border }}
+                     >
+                        {avatarEl}
+                     </div>
+                </div>
+
+                {/* Middle Section */}
+                <div className="relative z-10 my-auto">
+                    <div className="w-20 h-2 mb-8" style={{ backgroundColor: currentTheme.colors.primary }}></div>
+                    <h2 
+                        className="text-[100px] font-black leading-[0.9] tracking-tighter mb-8 break-words w-full line-clamp-4"
+                        style={{ color: currentTheme.colors.text }}
+                    >
+                        {activeMilestone.title}
+                    </h2>
+                    <p className="text-3xl font-light opacity-80 max-w-3xl leading-snug">
+                        {activeMilestone.description}
+                    </p>
+                </div>
+
+                {/* Bottom Section */}
+                <div className="relative z-10 w-full">
+                     {showStats ? renderCosmicStatsBlock('row') : (
+                        <div className="border-t-2 pt-8 flex justify-between items-end" style={{ borderColor: `${currentTheme.colors.text}20`}}>
+                            <div>
+                                <div className="text-sm uppercase tracking-widest opacity-50 mb-1">Target Date</div>
+                                <div className="text-5xl font-bold" style={{ color: currentTheme.colors.primary }}>
+                                    {activeMilestone.date ? format(activeMilestone.date, 'dd.MM.yyyy') : 'Today'}
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-2xl font-bold">{userProfile.name}</div>
+                                <div className="opacity-50">Life Milestones App</div>
+                            </div>
+                        </div>
+                     )}
+                </div>
+             </div>
+          )
+      }
+
+      // --- 3. BOLD TEMPLATE (Big Typography) ---
+      if (selectedTemplate === 'bold') {
+          return (
+              <div style={commonContainerStyles} className="flex flex-col items-center justify-center p-8 transition-colors duration-500">
+                  <div className="absolute inset-0 opacity-50" style={{ background: currentTheme.colors.card }}></div>
+                  <div className="absolute -top-[20%] -right-[20%] w-[800px] h-[800px] rounded-full opacity-20 blur-3xl" style={{ backgroundColor: currentTheme.colors.primary }}></div>
+                  
+                  <div className="relative z-10 border-4 w-full h-full flex flex-col justify-center items-center p-12 text-center" style={{ borderColor: currentTheme.colors.text }}>
+                      <div className="bg-skin-card px-8 py-2 -mt-10 mb-6 text-xl font-bold uppercase tracking-[0.3em] border shadow-sm" style={{ borderColor: currentTheme.colors.border, color: currentTheme.colors.primary }}>
+                          Achievement Unlocked
+                      </div>
+
+                      <h2 className="text-[110px] font-black uppercase leading-none mb-6 break-words w-full line-clamp-3" style={{ textShadow: `4px 4px 0px ${currentTheme.colors.muted}40` }}>
+                          {activeMilestone.title}
+                      </h2>
+
+                      <div className="flex items-center gap-6 mb-4">
+                           <div className="text-right">
+                               <div className="text-5xl font-bold">{activeMilestone.date ? format(activeMilestone.date, 'dd') : 'Now'}</div>
+                               <div className="text-xl uppercase opacity-60">{activeMilestone.date ? format(activeMilestone.date, 'MMM') : ''}</div>
+                           </div>
+                           <div className="w-1 h-16 bg-current opacity-20"></div>
+                           <div className="text-left text-xl font-medium max-w-xl opacity-90 line-clamp-2">
+                               {activeMilestone.description}
+                           </div>
+                      </div>
+                      
+                      {renderCosmicStatsBlock('grid')}
+                  </div>
+              </div>
+          )
+      }
+
+      // --- 4. MINIMAL TEMPLATE ---
+      if (selectedTemplate === 'minimal') {
+          return (
+              <div style={commonContainerStyles} className="flex flex-col items-center p-20 transition-colors duration-500">
+                  <div className="flex-1 flex flex-col items-center justify-center w-full">
+                       <div className="w-24 h-24 rounded-full overflow-hidden mb-8 grayscale opacity-80">
+                           {avatarEl}
+                       </div>
+                       
+                       <h2 className="text-6xl font-light tracking-tighter text-center mb-6 w-full break-words">
+                          {activeMilestone.title}
+                       </h2>
+                       
+                       <div className="w-16 h-1 my-6" style={{ backgroundColor: currentTheme.colors.primary }}></div>
+                       
+                       <p className="text-xl font-mono text-center opacity-60 max-w-2xl mb-4">
+                           "{activeMilestone.description}"
+                       </p>
+
+                       <div className="font-mono text-3xl font-bold" style={{ color: currentTheme.colors.primary }}>
+                          {activeMilestone.date ? format(activeMilestone.date, 'yyyy.MM.dd') : 'Today'}
+                      </div>
+
+                       {renderCosmicStatsBlock('minimal')}
+                  </div>
+              </div>
+          )
+      }
+
+      return null;
+  };
 
   if (!isOpen) return null;
 
@@ -427,12 +807,13 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
         onClick={onClose}
     >
       <div 
-        className="bg-skin-card w-full max-w-7xl rounded-none sm:rounded-3xl flex flex-col md:flex-row shadow-2xl h-full md:h-[90vh] border border-skin-border overflow-hidden"
+        className="bg-skin-card w-full max-w-7xl rounded-none sm:rounded-3xl flex flex-col-reverse md:flex-row shadow-2xl h-full md:h-[90vh] border border-skin-border overflow-hidden"
         onClick={(e) => e.stopPropagation()} 
       >
         
-        {/* Left: Controls */}
-        <div className="p-6 w-full md:w-96 flex-shrink-0 border-r border-b md:border-b-0 border-skin-border flex flex-col gap-5 bg-skin-base/50 overflow-y-auto scrollbar-hide overscroll-contain h-[45%] md:h-full z-20">
+        {/* Left (Desktop) / Bottom (Mobile): Controls */}
+        <div className="p-6 w-full md:w-96 flex-shrink-0 border-t md:border-t-0 md:border-r border-skin-border flex flex-col gap-5 bg-skin-base/50 overflow-y-auto scrollbar-hide overscroll-contain h-[45%] md:h-full z-20">
+            {/* ... Controls code ... */}
             <div className="flex justify-between items-center">
                 <h3 className="font-bold text-lg text-skin-text flex items-center gap-2">
                     <Film className="w-5 h-5 text-skin-primary" />
@@ -485,31 +866,80 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                         </button>
                     </div>
                 </div>
+
+                 {/* 3. Design Template Selector */}
+                 <div>
+                    <label className="text-xs font-bold text-skin-muted uppercase mb-3 block tracking-wider flex items-center gap-2">
+                        <LayoutTemplate size={12}/> Layout Style
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                        {[
+                            { id: 'classic', label: 'Classic', icon: AlignCenter },
+                            { id: 'modern', label: 'Modern', icon: AlignLeft },
+                            { id: 'bold', label: 'Bold', icon: Box },
+                            { id: 'minimal', label: 'Minimal', icon: Type },
+                        ].map((t) => (
+                            <button
+                                key={t.id}
+                                onClick={() => setSelectedTemplate(t.id as TemplateType)}
+                                className={`
+                                    p-3 rounded-xl border flex items-center gap-3 transition-all
+                                    ${selectedTemplate === t.id 
+                                        ? 'border-skin-primary bg-skin-primary/10 text-skin-primary ring-1 ring-skin-primary' 
+                                        : 'border-skin-border bg-skin-card hover:bg-skin-input text-skin-text'}
+                                `}
+                            >
+                                <t.icon size={16} />
+                                <span className="text-xs font-bold">{t.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 3.5 Cosmic Stats Toggle */}
+                <div className="flex items-center justify-between p-3 rounded-xl border border-skin-border bg-skin-card">
+                    <label className="text-xs font-bold text-skin-muted uppercase tracking-wider flex items-center gap-2 cursor-pointer" htmlFor="cosmic-toggle">
+                        <Globe size={14}/> Show Cosmic Stats
+                    </label>
+                    <div 
+                        className={`w-10 h-6 rounded-full p-1 cursor-pointer transition-colors duration-300 ${showStats ? 'bg-skin-primary' : 'bg-skin-input'}`}
+                        onClick={() => setShowStats(!showStats)}
+                        id="cosmic-toggle"
+                    >
+                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${showStats ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </div>
+                </div>
                 
-                {/* 2b. Resolution Selector (Image Only) */}
+                {/* 4. Resolution Selector (Image Only) */}
                 {formatType === 'image' && (
                     <div className="animate-in fade-in slide-in-from-left-2 duration-300">
                          <label className="text-xs font-bold text-skin-muted uppercase mb-3 block tracking-wider flex items-center gap-2">
                             <Monitor size={12}/> Resolution
                         </label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                             <button 
                                 onClick={() => setImageQuality('1080p')}
-                                className={`py-2 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 transition-all ${imageQuality === '1080p' ? 'bg-skin-primary text-white border-skin-primary' : 'bg-skin-card border-skin-border hover:bg-skin-input'}`}
+                                className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all ${imageQuality === '1080p' ? 'bg-skin-primary text-white border-skin-primary' : 'bg-skin-card border-skin-border hover:bg-skin-input'}`}
                             >
-                                <Monitor size={14} /> 1080p (HD)
+                                <Monitor size={14} /> 1080p
                             </button>
                             <button 
                                 onClick={() => setImageQuality('4K')}
-                                className={`py-2 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 transition-all ${imageQuality === '4K' ? 'bg-skin-primary text-white border-skin-primary' : 'bg-skin-card border-skin-border hover:bg-skin-input'}`}
+                                className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all ${imageQuality === '4K' ? 'bg-skin-primary text-white border-skin-primary' : 'bg-skin-card border-skin-border hover:bg-skin-input'}`}
                             >
-                                <Gauge size={14} /> 4K Ultra
+                                <Gauge size={14} /> 4K
+                            </button>
+                            <button 
+                                onClick={() => setImageQuality('Max')}
+                                className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all ${imageQuality === 'Max' ? 'bg-skin-primary text-white border-skin-primary' : 'bg-skin-card border-skin-border hover:bg-skin-input'}`}
+                            >
+                                <Maximize size={14} /> Max
                             </button>
                         </div>
                     </div>
                 )}
 
-                {/* 3. Video Options (Conditional) */}
+                {/* 5. Video Options (Conditional) */}
                 {formatType === 'video' && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-left-2 duration-300">
                         <div>
@@ -560,7 +990,7 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                     </div>
                 )}
 
-                {/* 4. Aspect Ratio */}
+                {/* 6. Aspect Ratio */}
                 <div>
                     <label className="text-xs font-bold text-skin-muted uppercase mb-3 block tracking-wider">Canvas Size</label>
                     <div className="grid grid-cols-3 gap-2">
@@ -581,26 +1011,33 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                     </div>
                 </div>
 
-                {/* 5. Theme Toggle */}
+                {/* 7. Theme Selection */}
                 <div>
-                    <label className="text-xs font-bold text-skin-muted uppercase mb-3 block tracking-wider">Appearance</label>
-                    <button 
-                        onClick={() => setUseTheme(!useTheme)}
-                        className={`w-full p-4 rounded-xl border flex items-center justify-between transition-all group ${useTheme ? 'border-skin-primary bg-skin-card text-skin-text shadow-sm' : 'border-purple-500/50 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 text-indigo-600'}`}
-                    >
-                        <div className="flex items-center gap-3 font-semibold">
-                            <div className={`p-2 rounded-lg ${useTheme ? 'bg-skin-input' : 'bg-indigo-100'}`}>
-                                <Palette size={18} />
-                            </div>
-                            <div className="text-left">
-                                <div className="text-sm">{useTheme ? themes[userProfile.theme].name : 'Brand Gradient'}</div>
-                                <div className="text-[10px] opacity-70 font-normal">
-                                    {useTheme ? 'Matches app theme' : 'Default export style'}
-                                </div>
-                            </div>
-                        </div>
-                        {useTheme && <Check size={16} className="text-skin-primary" />}
-                    </button>
+                    <label className="text-xs font-bold text-skin-muted uppercase mb-3 block tracking-wider flex items-center gap-2">
+                        <Palette size={12} /> Color Theme
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                        {Object.values(themes).map(t => (
+                            <button
+                                key={t.id}
+                                onClick={() => setActiveThemeId(t.id)}
+                                className={`p-2 rounded-lg border text-left text-xs transition-all flex items-center gap-2 ${
+                                    activeThemeId === t.id
+                                        ? 'border-skin-primary ring-1 ring-skin-primary bg-skin-card'
+                                        : 'border-skin-border hover:bg-skin-input bg-skin-base/50'
+                                }`}
+                            >
+                                <div 
+                                    className="w-4 h-4 rounded-full border shadow-sm flex-shrink-0" 
+                                    style={{ background: t.colors.primary }}
+                                />
+                                <span className="truncate font-medium">{t.name}</span>
+                                {userProfile.theme === t.id && (
+                                    <span className="ml-auto text-[10px] bg-skin-input px-1 rounded text-skin-muted">My</span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -636,78 +1073,43 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
             </div>
         </div>
 
-        {/* Right: Preview (Fixed Layout) */}
+        {/* Right (Desktop) / Top (Mobile): Preview */}
         <div className="flex-1 bg-skin-input relative flex flex-col h-[55%] md:h-full overflow-hidden">
             <div className="absolute top-0 left-0 right-0 z-20 flex justify-between items-center p-4 bg-gradient-to-b from-skin-input/80 to-transparent pointer-events-none">
                  <span className="bg-skin-card/90 backdrop-blur-md border border-skin-border px-4 py-1.5 rounded-full text-[10px] font-bold text-skin-muted uppercase tracking-wider shadow-sm flex items-center gap-2">
                     <Check size={12} className="text-green-500"/> Live Preview
                  </span>
-                 {previewScale < 0.5 && (
-                    <span className="bg-black/50 text-white text-[10px] px-2 py-1 rounded backdrop-blur-md">
-                        Zoom: {(previewScale * 100).toFixed(0)}%
-                    </span>
-                 )}
+                 
+                 <div className="pointer-events-auto">
+                     <button
+                        onClick={() => setIsZoomed(!isZoomed)}
+                        className="bg-black/50 hover:bg-black/70 text-white text-[10px] px-3 py-1.5 rounded-full backdrop-blur-md flex items-center gap-2 transition-colors"
+                     >
+                        {isZoomed ? <ZoomOut size={12} /> : <ZoomIn size={12} />}
+                        <span>{isZoomed ? '100%' : `Fit ${(previewScale * 100).toFixed(0)}%`}</span>
+                     </button>
+                 </div>
             </div>
             
             <div 
                 ref={previewContainerRef}
-                className="flex-1 w-full h-full flex items-center justify-center relative bg-skin-input overflow-hidden"
+                className={`flex-1 w-full h-full flex ${isZoomed ? 'items-start justify-start overflow-auto p-8' : 'items-center justify-center overflow-hidden'} relative bg-skin-input`}
             >
-                {/* The Content Wrapper (Scaled) */}
+                {/* The Content Wrapper (Scaled for Preview) */}
                 <div 
                     style={{
                         width: baseW,
                         height: baseH,
-                        transform: `scale(${previewScale})`,
+                        transform: isZoomed ? 'none' : `scale(${previewScale})`,
                         transformOrigin: 'center center',
                         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        flexShrink: 0 // Prevent shrinking in flex container when zoomed
                     }}
-                    className="transition-transform duration-200 ease-out will-change-transform"
+                    className="transition-transform duration-200 ease-out will-change-transform shadow-2xl"
                 >
                     {formatType === 'image' ? (
-                        <div 
-                            ref={cardRef}
-                            className="w-full h-full relative flex flex-col items-center justify-center p-12 text-center overflow-hidden"
-                            style={{
-                                background: useTheme ? themes[userProfile.theme].colors.base : 'linear-gradient(135deg, #4f46e5 0%, #9333ea 100%)',
-                                color: useTheme ? themes[userProfile.theme].colors.text : '#ffffff',
-                            }}
-                        >
-                            {/* Background Pattern */}
-                            <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
-                            
-                            <div className="relative z-10 flex flex-col items-center gap-8 w-full max-w-4xl mx-auto">
-                                {userProfile.avatar ? (
-                                    <div className="w-40 h-40 rounded-full border-4 border-white/20 shadow-xl overflow-hidden bg-white/10">
-                                         <img src={userProfile.avatar} alt="Me" className="w-full h-full object-cover" />
-                                    </div>
-                                ) : (
-                                    <Logo className={`w-32 h-32 opacity-90 ${useTheme ? '' : 'text-white'}`} />
-                                )}
-                                
-                                <div className={`uppercase tracking-[0.2em] text-2xl font-bold opacity-60 border-y-2 py-4 px-12 ${useTheme ? 'border-current' : 'border-white/20'}`}>
-                                    Milestone Reached
-                                </div>
-                                
-                                <h2 className="text-8xl font-black leading-tight tracking-tight break-words w-full drop-shadow-sm">
-                                    {activeMilestone.title}
-                                </h2>
-                                
-                                <p className="text-4xl opacity-90 font-medium leading-relaxed max-w-3xl">
-                                    {activeMilestone.description}
-                                </p>
-
-                                <div className={`mt-12 px-10 py-6 rounded-2xl border backdrop-blur-md shadow-lg ${useTheme ? 'bg-black/5 border-current' : 'bg-white/10 border-white/20'}`}>
-                                    <span className="font-mono text-5xl font-bold">
-                                        {activeMilestone.date ? format(activeMilestone.date, 'MMMM do, yyyy') : 'Today'}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="absolute bottom-16 text-xl uppercase tracking-widest opacity-50 font-bold flex flex-col gap-1">
-                               <span>Calculated for {userProfile.name}</span>
-                               <span className="text-sm opacity-70">via Life Milestones App</span>
-                            </div>
+                        <div ref={cardRef}>
+                            {renderCardHTML()}
                         </div>
                     ) : (
                         <div className="w-full h-full bg-black">
@@ -716,6 +1118,24 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                     )}
                 </div>
             </div>
+
+            {/* Hidden Export Render (Off-Screen) for High Quality Capture */}
+            {formatType === 'image' && (
+                <div 
+                    style={{ 
+                        position: 'fixed', 
+                        left: '-9999px', 
+                        top: 0, 
+                        width: baseW, 
+                        height: baseH,
+                        pointerEvents: 'none',
+                    }}
+                >
+                    <div ref={exportRef} id="export-container" style={{ width: baseW, height: baseH }}>
+                        {renderCardHTML()}
+                    </div>
+                </div>
+            )}
         </div>
       </div>
     </div>
