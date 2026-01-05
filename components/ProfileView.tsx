@@ -63,10 +63,10 @@ const ProfileView: React.FC<Props> = ({
         
         {/* Install App Section */}
         {(canInstallPwa || isPwaInstalled) && (
-            <div className="bg-gradient-to-r from-skin-primary to-indigo-600 rounded-xl shadow-md p-6 text-white relative overflow-hidden">
+            <div className="bg-gradient-to-r from-skin-primary to-indigo-600 rounded-xl shadow-md p-6 text-white relative overflow-hidden border border-white/20">
                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                        <div className="bg-white/20 p-3 rounded-full">
+                        <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm">
                             <Smartphone className="w-6 h-6 text-white" />
                         </div>
                         <div>
@@ -99,7 +99,7 @@ const ProfileView: React.FC<Props> = ({
         )}
 
         {/* Main Profile Card */}
-        <div className="bg-skin-card rounded-xl shadow-sm border border-skin-border p-6">
+        <div className="bg-skin-card/70 backdrop-blur-xl rounded-xl shadow-sm border border-white/20 p-6">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-skin-text flex items-center gap-2">
                     <User className="text-skin-primary" />
@@ -113,7 +113,7 @@ const ProfileView: React.FC<Props> = ({
                 {/* Avatar Section */}
                 <div className="flex flex-col items-center gap-3 mx-auto md:mx-0">
                     <div 
-                        className="relative w-32 h-32 rounded-full bg-skin-input border-4 border-skin-border overflow-hidden cursor-pointer group shadow-inner"
+                        className="relative w-32 h-32 rounded-full bg-skin-input border-4 border-skin-border/50 overflow-hidden cursor-pointer group shadow-inner"
                         onClick={() => fileInputRef.current?.click()}
                     >
                         {profile.avatar ? (
@@ -151,7 +151,7 @@ const ProfileView: React.FC<Props> = ({
                             value={profile.name}
                             onChange={(e) => handleChange('name', e.target.value)}
                             placeholder="Enter your name"
-                            className="w-full p-3 bg-skin-input text-skin-text border border-skin-border rounded-xl focus:ring-2 focus:ring-skin-primary focus:outline-none transition-all"
+                            className="w-full p-3 bg-skin-input/50 text-skin-text border border-skin-border/50 rounded-xl focus:ring-2 focus:ring-skin-primary focus:outline-none transition-all backdrop-blur-sm"
                         />
                     </div>
                      <div>
@@ -162,7 +162,7 @@ const ProfileView: React.FC<Props> = ({
                                 type="date" 
                                 value={profile.dob} 
                                 onChange={(e) => handleChange('dob', e.target.value)}
-                                className="w-full p-3 pl-10 bg-skin-input text-skin-text border border-skin-border rounded-xl focus:ring-2 focus:ring-skin-primary focus:outline-none transition-all"
+                                className="w-full p-3 pl-10 bg-skin-input/50 text-skin-text border border-skin-border/50 rounded-xl focus:ring-2 focus:ring-skin-primary focus:outline-none transition-all backdrop-blur-sm"
                             />
                         </div>
                     </div>
@@ -174,7 +174,7 @@ const ProfileView: React.FC<Props> = ({
                                 type="time" 
                                 value={profile.tob} 
                                 onChange={(e) => handleChange('tob', e.target.value)}
-                                className="w-full p-3 pl-10 bg-skin-input text-skin-text border border-skin-border rounded-xl focus:ring-2 focus:ring-skin-primary focus:outline-none transition-all"
+                                className="w-full p-3 pl-10 bg-skin-input/50 text-skin-text border border-skin-border/50 rounded-xl focus:ring-2 focus:ring-skin-primary focus:outline-none transition-all backdrop-blur-sm"
                             />
                         </div>
                     </div>
@@ -183,7 +183,7 @@ const ProfileView: React.FC<Props> = ({
         </div>
 
         {/* Theme Selector (In Profile) */}
-        <div className="bg-skin-card rounded-xl shadow-sm border border-skin-border p-6">
+        <div className="bg-skin-card/70 backdrop-blur-xl rounded-xl shadow-sm border border-white/20 p-6">
             <h2 className="text-xl font-bold text-skin-text mb-4 flex items-center gap-2">
                 <Palette className="text-skin-primary" />
                 App Theme
@@ -196,13 +196,13 @@ const ProfileView: React.FC<Props> = ({
                         className={`
                         p-3 rounded-lg border text-left text-xs font-medium transition-all flex items-center gap-2
                         ${profile.theme === theme.id 
-                            ? 'border-skin-primary ring-1 ring-skin-primary bg-skin-input' 
-                            : 'border-skin-border hover:bg-skin-base'}
+                            ? 'border-skin-primary ring-1 ring-skin-primary bg-skin-input/80' 
+                            : 'border-skin-border/50 hover:bg-skin-base/50'}
                         `}
                     >
                         <div 
                             className="w-4 h-4 rounded-full border shadow-sm flex-shrink-0"
-                            style={{ backgroundColor: theme.colors.primary, borderColor: theme.colors.border }}
+                            style={{ backgroundColor: `rgb(${theme.colors.primary})`, borderColor: `rgb(${theme.colors.border})` }}
                         />
                         <span className="truncate">{theme.name}</span>
                     </button>
@@ -211,13 +211,13 @@ const ProfileView: React.FC<Props> = ({
         </div>
 
         {/* Custom Events Manager */}
-        <div className="bg-skin-card rounded-xl shadow-sm border border-skin-border p-6">
+        <div className="bg-skin-card/70 backdrop-blur-xl rounded-xl shadow-sm border border-white/20 p-6">
              <h2 className="text-xl font-bold text-skin-text mb-6 flex items-center gap-2">
                 <Calendar className="text-skin-primary" />
                 Custom Life Events
             </h2>
             
-            <form onSubmit={handleAddEvent} className="flex flex-col md:flex-row gap-4 items-end mb-6 bg-skin-base p-4 rounded-xl border border-skin-border">
+            <form onSubmit={handleAddEvent} className="flex flex-col md:flex-row gap-4 items-end mb-6 bg-skin-base/50 p-4 rounded-xl border border-skin-border/50 backdrop-blur-sm">
                 <div className="flex-1 w-full">
                     <label className="text-xs font-semibold text-skin-muted mb-1 block">Event Name</label>
                     <input 
@@ -225,7 +225,7 @@ const ProfileView: React.FC<Props> = ({
                         placeholder="e.g. Wedding, Graduation, First Job"
                         value={newEventName}
                         onChange={(e) => setNewEventName(e.target.value)}
-                        className="w-full p-2 text-sm bg-skin-card text-skin-text border border-skin-border rounded-lg focus:outline-none focus:border-skin-primary"
+                        className="w-full p-2 text-sm bg-skin-card/50 text-skin-text border border-skin-border/50 rounded-lg focus:outline-none focus:border-skin-primary"
                     />
                 </div>
                 <div className="w-full md:w-auto">
@@ -234,7 +234,7 @@ const ProfileView: React.FC<Props> = ({
                         type="date" 
                         value={newEventDate}
                         onChange={(e) => setNewEventDate(e.target.value)}
-                        className="w-full p-2 text-sm bg-skin-card text-skin-text border border-skin-border rounded-lg focus:outline-none focus:border-skin-primary"
+                        className="w-full p-2 text-sm bg-skin-card/50 text-skin-text border border-skin-border/50 rounded-lg focus:outline-none focus:border-skin-primary"
                     />
                 </div>
                 <button 
@@ -247,12 +247,12 @@ const ProfileView: React.FC<Props> = ({
 
             <div className="space-y-3">
                 {customEvents.length === 0 ? (
-                    <div className="text-center py-8 text-skin-muted border-2 border-dashed border-skin-border rounded-xl">
+                    <div className="text-center py-8 text-skin-muted border-2 border-dashed border-skin-border/50 rounded-xl">
                         No custom events added yet.
                     </div>
                 ) : (
                     customEvents.map(evt => (
-                        <div key={evt.id} className="flex justify-between items-center bg-skin-input p-4 rounded-xl border border-skin-border group hover:border-skin-primary/30 transition-colors">
+                        <div key={evt.id} className="flex justify-between items-center bg-skin-input/50 p-4 rounded-xl border border-skin-border/50 group hover:border-skin-primary/30 transition-colors">
                             <div>
                                 <div className="font-bold text-skin-text">{evt.name}</div>
                                 <div className="text-xs text-skin-muted">{new Date(evt.date).toLocaleDateString()}</div>

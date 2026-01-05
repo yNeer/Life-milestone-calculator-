@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { X, Download, Video, Image as ImageIcon, Check, Palette, Film, Instagram, Smartphone, Square, Activity, Move, Sparkles, Timer, Calendar, ZoomIn, ZoomOut, Monitor, Gauge, Share2, Copy, AlertCircle, Maximize, LayoutTemplate, AlignLeft, AlignCenter, Type, Box, Globe, Sun, Watch } from 'lucide-react';
+import { X, Download, Video, Image as ImageIcon, Check, Palette, Film, Instagram, Smartphone, Square, Activity, Move, Sparkles, Timer, Calendar, ZoomIn, ZoomOut, Monitor, Gauge, Share2, Copy, AlertCircle, Maximize, LayoutTemplate, AlignLeft, AlignCenter, Type, Box, Globe, Sun, Watch, Camera } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { Milestone, UserProfile, ThemeId } from '../types';
 import { format, differenceInDays } from 'date-fns';
@@ -399,15 +399,42 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                   el.style.opacity = '1';
                   
                   // Fix text shifting downwards in html2canvas export
-                  // A transformation translate is often more robust than top/margin in canvas rendering
+                  // Apply a counter-slide (move UP) to correct the visual drop
                   const contentLayers = el.querySelectorAll('.content-layer');
                   contentLayers.forEach((layer: any) => {
-                      layer.style.transform = 'translateY(-30px)'; 
+                      layer.style.transform = 'translateY(-30px)'; // Move UP 30px
                   });
               }
           }
       });
       return new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+  };
+
+  const handleQuickSnapshot = async () => {
+      if (!cardRef.current) return;
+      setIsGenerating(true);
+      try {
+          const canvas = await html2canvas(cardRef.current, {
+              scale: 1.5, // 1.5x quality as requested
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: null,
+              logging: false,
+          });
+
+          const url = canvas.toDataURL('image/png');
+          const link = document.createElement('a');
+          link.download = generateFilename('png');
+          link.href = url;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+      } catch (err) {
+          console.error("Quick snapshot failed", err);
+          alert("Could not generate snapshot.");
+      } finally {
+          setIsGenerating(false);
+      }
   };
 
   const handleDownload = async () => {
@@ -1089,7 +1116,19 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose, title, text, milestone, 
                     <Check size={12} className="text-green-500"/> Live Preview
                  </span>
                  
-                 <div className="pointer-events-auto">
+                 <div className="pointer-events-auto flex items-center gap-2">
+                     {/* Quick Snapshot Button (1.5x) */}
+                     {formatType === 'image' && (
+                         <button
+                            onClick={handleQuickSnapshot}
+                            disabled={isGenerating}
+                            className="bg-skin-primary hover:bg-skin-primary/90 text-white p-2 rounded-full backdrop-blur-md transition-all shadow-lg border border-white/20 active:scale-95"
+                            title="Quick Save (1.5x)"
+                         >
+                            {isGenerating ? <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></div> : <Download size={16} />}
+                         </button>
+                     )}
+
                      <button
                         onClick={() => setIsZoomed(!isZoomed)}
                         className="bg-black/40 hover:bg-black/60 text-white text-[10px] px-3 py-1.5 rounded-full backdrop-blur-md flex items-center gap-2 transition-colors border border-white/10"

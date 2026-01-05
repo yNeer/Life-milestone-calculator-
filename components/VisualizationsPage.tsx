@@ -127,19 +127,19 @@ const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="bg-skin-card p-6 rounded-xl shadow-sm border border-skin-border">
+      <div className="bg-skin-card/70 backdrop-blur-xl p-6 rounded-xl shadow-sm border border-white/20">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
           <div>
             <h2 className="text-xl font-bold text-skin-text">Milestone Analysis</h2>
             <p className="text-sm text-skin-muted">Explore the distribution of your life events</p>
           </div>
-          <div className="flex flex-wrap gap-1 bg-skin-input p-1 rounded-lg">
+          <div className="flex flex-wrap gap-1 bg-skin-input p-1 rounded-lg backdrop-blur-sm">
             {(['scatter', 'bar', 'pie', 'birthdays'] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setChartType(t)}
                 className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md capitalize transition-all ${
-                  chartType === t ? 'bg-skin-card text-skin-text shadow-sm border border-skin-border' : 'text-skin-muted hover:text-skin-text'
+                  chartType === t ? 'bg-skin-card shadow-sm border border-skin-border text-skin-text' : 'text-skin-muted hover:text-skin-text'
                 }`}
               >
                 {t === 'birthdays' ? 'Birthday Horizon' : t}
@@ -157,19 +157,19 @@ const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-indigo-500/10 p-4 rounded-xl border border-indigo-500/20">
+          <div className="bg-indigo-500/10 p-4 rounded-xl border border-indigo-500/20 backdrop-blur-sm">
               <div className="text-2xl font-bold text-indigo-600">{milestones.length}</div>
               <div className="text-xs text-indigo-500/80 uppercase font-semibold">Total Milestones</div>
           </div>
-          <div className="bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20">
+          <div className="bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20 backdrop-blur-sm">
               <div className="text-2xl font-bold text-emerald-600">{milestones.filter(m => !m.isPast).length}</div>
               <div className="text-xs text-emerald-500/80 uppercase font-semibold">Future Events</div>
           </div>
-           <div className="bg-amber-500/10 p-4 rounded-xl border border-amber-500/20">
+           <div className="bg-amber-500/10 p-4 rounded-xl border border-amber-500/20 backdrop-blur-sm">
               <div className="text-2xl font-bold text-amber-600">{milestones.filter(m => m.category === MilestoneCategory.Math).length}</div>
               <div className="text-xs text-amber-500/80 uppercase font-semibold">Math Curiosities</div>
           </div>
-          <div className="bg-rose-500/10 p-4 rounded-xl border border-rose-500/20">
+          <div className="bg-rose-500/10 p-4 rounded-xl border border-rose-500/20 backdrop-blur-sm">
               <div className="text-2xl font-bold text-rose-600">{eventsThisYear}</div>
               <div className="text-xs text-rose-500/80 uppercase font-semibold">Events in {currentYear}</div>
           </div>

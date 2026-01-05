@@ -10,7 +10,7 @@ interface Props {
 
 const SettingsView: React.FC<Props> = ({ currentTheme, setTheme }) => {
   return (
-    <div className="bg-skin-card rounded-xl shadow-sm border border-skin-border p-6 animate-in fade-in duration-300">
+    <div className="bg-skin-card/70 backdrop-blur-xl rounded-xl shadow-sm border border-white/20 p-6 animate-in fade-in duration-300">
       <h2 className="text-xl font-bold text-skin-text mb-6 flex items-center gap-2">
         <Palette className="w-5 h-5 text-skin-primary" />
         Appearance & Themes
@@ -24,29 +24,29 @@ const SettingsView: React.FC<Props> = ({ currentTheme, setTheme }) => {
             className={`
               relative p-4 rounded-xl border-2 transition-all text-left group
               ${currentTheme === theme.id 
-                ? 'border-skin-primary ring-2 ring-skin-primary/20' 
-                : 'border-skin-border hover:border-skin-muted/50'}
+                ? 'border-skin-primary ring-2 ring-skin-primary/20 bg-skin-card' 
+                : 'border-skin-border/50 hover:border-skin-muted/50 bg-skin-card/50'}
             `}
-            style={{ backgroundColor: theme.colors.card }}
+            style={{ backgroundColor: `rgb(${theme.colors.card}, 0.5)` }} // Force RGB syntax here isn't direct, so use style carefully or rely on class
           >
             {/* Color Preview Swatches */}
             <div className="flex gap-2 mb-3">
               <div 
                 className="w-6 h-6 rounded-full border shadow-sm"
-                style={{ backgroundColor: theme.colors.base, borderColor: theme.colors.border }}
+                style={{ backgroundColor: `rgb(${theme.colors.base})`, borderColor: `rgb(${theme.colors.border})` }}
               />
               <div 
                 className="w-6 h-6 rounded-full border shadow-sm"
-                style={{ backgroundColor: theme.colors.primary, borderColor: theme.colors.border }}
+                style={{ backgroundColor: `rgb(${theme.colors.primary})`, borderColor: `rgb(${theme.colors.border})` }}
               />
               <div 
                 className="w-6 h-6 rounded-full border shadow-sm"
-                style={{ backgroundColor: theme.colors.text, borderColor: theme.colors.border }}
+                style={{ backgroundColor: `rgb(${theme.colors.text})`, borderColor: `rgb(${theme.colors.border})` }}
               />
             </div>
             
-            <div className="font-semibold" style={{ color: theme.colors.text }}>{theme.name}</div>
-            <div className="text-xs mt-1" style={{ color: theme.colors.muted }}>
+            <div className="font-semibold" style={{ color: `rgb(${theme.colors.text})` }}>{theme.name}</div>
+            <div className="text-xs mt-1" style={{ color: `rgb(${theme.colors.muted})` }}>
               {theme.id === 'amoled' ? 'True Black' : 'Preset'}
             </div>
 
@@ -57,7 +57,7 @@ const SettingsView: React.FC<Props> = ({ currentTheme, setTheme }) => {
         ))}
       </div>
       
-      <div className="mt-8 p-4 bg-skin-base rounded-lg border border-skin-border text-skin-muted text-sm">
+      <div className="mt-8 p-4 bg-skin-base/50 rounded-lg border border-skin-border/50 text-skin-muted text-sm backdrop-blur-sm">
         Select a theme to instantly apply colors across the entire application. 
         Your preference is saved for this session.
       </div>
