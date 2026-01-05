@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { differenceInSeconds, format } from 'date-fns';
+import { differenceInSeconds } from 'date-fns';
+import InputSection from './components/InputSection';
 import UpcomingShowcase from './components/UpcomingShowcase';
 import NextBirthdayCard from './components/NextBirthdayCard';
 import MilestoneList from './components/MilestoneList';
@@ -9,12 +10,12 @@ import NavBar from './components/NavBar';
 import SettingsView from './components/SettingsView';
 import ProfileView from './components/ProfileView';
 import AboutView from './components/AboutView';
-import ExportView from './components/ExportView';
 import ShareModal from './components/ShareModal';
+import { LiveClockWidget, ZodiacWidget, DayBornWidget, YearProgressWidget } from './components/MosaicWidgets';
 import { CustomEvent, ThemeId, UserProfile, Milestone } from './types';
 import { getAllMilestones } from './utils/generators';
 import { applyTheme } from './utils/themes';
-import { Info, Sparkles, CalendarRange, Download, BarChart2 } from 'lucide-react';
+import { Info, Sparkles, CalendarRange, Download, ChevronRight } from 'lucide-react';
 import ShareButton from './components/ShareButton';
 
 const STORAGE_KEY = 'life_milestones_data';
@@ -40,7 +41,7 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved).customEvents.map((e: any) => ({...e, date: new Date(e.date)})) : [];
   });
 
-  const [currentView, setCurrentView] = useState<'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about' | 'export'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about'>('dashboard');
   
   // Share Modal State
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -122,21 +123,9 @@ const App: React.FC = () => {
     return getAllMilestones(new Date(profile.dob), profile.tob, customEvents);
   }, [profile.dob, profile.tob, customEvents]);
 
-  const yearlyOutlook = useMemo(() => {
+  const milestonesThisYear = useMemo(() => {
       const currentYear = new Date().getFullYear();
-      const outlook: { year: number, count: number }[] = [];
-      for(let i = 0; i < 3; i++) {
-          const year = currentYear + i;
-          outlook.push({
-              year: year,
-              count: milestones.filter(m => m.date.getFullYear() === year).length
-          });
-      }
-      return outlook;
-  }, [milestones]);
-
-  const nextFiveMilestones = useMemo(() => {
-      return milestones.filter(m => !m.isPast).slice(0, 5);
+      return milestones.filter(m => m.date.getFullYear() === currentYear);
   }, [milestones]);
 
   // --- Render Logic ---
@@ -148,9 +137,7 @@ const App: React.FC = () => {
       case 'visualizations':
         return <VisualizationsPage milestones={milestones} dob={new Date(profile.dob)} />;
       case 'list':
-        return <MilestoneList milestones={milestones} onShare={openShare} onExport={() => setCurrentView('export')} />; 
-      case 'export':
-        return <ExportView milestones={milestones} userName={profile.name} />;
+        return <MilestoneList milestones={milestones} onShare={openShare} />; 
       case 'profile':
         return (
           <ProfileView 
@@ -169,111 +156,135 @@ const App: React.FC = () => {
       case 'dashboard':
       default:
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-300">
-             {/* Left Column: Input & Stats */}
-            <div className="lg:col-span-4 space-y-6">
-               <div className="lg:hidden">
+          <div className="flex flex-col gap-5 animate-in fade-in duration-500">
+             
+             {/* Hello Header */}
+             <div className="flex items-center justify-between px-2">
+                 <div>
+                    <h2 className="text-2xl font-bold text-skin-text">Hello, {profile.name} 👋</h2>
+                    <p className="text-sm text-skin-muted font-medium">Here is your life overview</p>
+                 </div>
+                 <button onClick={() => setCurrentView('profile')} className="p-2 bg-skin-card/50 rounded-full hover:bg-skin-primary hover:text-white transition-colors">
+                     <ChevronRight size={20}/>
+                 </button>
+             </div>
+
+             {/* MOSAIC GRID LAYOUT */}
+             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">
+                 
+                 {/* 1. Upcoming Showcase (2x2 on Desktop, Full on Mobile) */}
+                 <div className="col-span-2 lg:col-span-2 row-span-2">
                      <UpcomingShowcase milestones={milestones} onShare={openShare} />
-               </div>
+                 </div>
 
-              <div className="bg-skin-card/50 backdrop-blur-2xl p-6 rounded-xl shadow-sm border border-white/20">
-                <h3 className="text-xl font-bold text-skin-text mb-1">Hello, {profile.name || 'Friend'}!</h3>
-                <p className="text-sm text-skin-muted mb-4">You are viewing your life timeline.</p>
-                <button 
-                    onClick={() => setCurrentView('profile')}
-                    className="w-full py-2 px-4 bg-skin-input/50 hover:bg-skin-border/50 text-skin-primary font-medium rounded-lg text-sm transition-colors border border-skin-border/20"
+                 {/* 2. Live Clock (1x1) */}
+                 <div className="col-span-1 lg:col-span-1 min-h-[140px]">
+                     <LiveClockWidget />
+                 </div>
+
+                 {/* 3. Year Progress (1x1) */}
+                 <div className="col-span-1 lg:col-span-1 min-h-[140px]">
+                     <YearProgressWidget />
+                 </div>
+
+                 {/* 4. Current Age (Stats) (2x1) */}
+                 <div className="col-span-2 lg:col-span-1 row-span-2">
+                     <CurrentAgeCard dob={profile.dob} tob={profile.tob} onShare={openShare} />
+                 </div>
+
+                 {/* 5. Next Birthday (1x1 or 1x2 depending on content) */}
+                 <div className="col-span-2 lg:col-span-1 min-h-[200px]">
+                     <NextBirthdayCard dob={profile.dob} onShare={openShare} />
+                 </div>
+                 
+                 {/* 6. Zodiac (1x1) */}
+                 <div className="col-span-1 lg:col-span-1 min-h-[140px]">
+                     <ZodiacWidget dob={new Date(profile.dob)} />
+                 </div>
+
+                 {/* 7. Day Born (1x1) */}
+                 <div className="col-span-1 lg:col-span-1 min-h-[140px]">
+                     <DayBornWidget dob={new Date(profile.dob)} />
+                 </div>
+
+             </div>
+
+             {/* Secondary Grid (Insights) */}
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                
+                {/* Year Stats Tile */}
+                <div 
+                    onClick={() => setCurrentView('list')}
+                    className="bg-skin-card/40 backdrop-blur-2xl p-5 rounded-[2rem] shadow-lg border border-white/20 relative overflow-hidden group cursor-pointer hover:bg-skin-card/60 transition-colors"
                 >
-                    Edit Profile Details
-                </button>
-              </div>
-              
-              <CurrentAgeCard dob={profile.dob} tob={profile.tob} onShare={openShare} />
-              <NextBirthdayCard dob={profile.dob} onShare={openShare} />
+                    <div className="absolute -right-6 -top-6 text-skin-text opacity-5 group-hover:opacity-10 transition-opacity">
+                        <CalendarRange size={140} />
+                    </div>
+                    <div className="relative z-10">
+                         <div className="flex items-center gap-2 mb-2">
+                            <div className="p-1.5 rounded-lg bg-skin-primary/10 text-skin-primary">
+                                <CalendarRange size={16} />
+                            </div>
+                            <span className="font-bold text-sm text-skin-text">{new Date().getFullYear()} Overview</span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                             <div className="text-4xl font-black text-skin-text tracking-tight">{milestonesThisYear.length}</div>
+                             <div className="text-xs font-bold text-skin-muted uppercase">Events</div>
+                        </div>
+                    </div>
+                </div>
 
-              {/* Year Stats Card */}
-              <div className="bg-skin-card/50 backdrop-blur-2xl p-5 rounded-xl shadow-sm border border-white/20 relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-8 opacity-5">
-                      <BarChart2 size={100} className="text-skin-text"/>
-                  </div>
-                  <h3 className="font-semibold flex items-center gap-2 mb-3 text-skin-text relative z-10">
-                    <CalendarRange className="w-5 h-5 text-skin-primary" />
-                    Yearly Outlook
-                  </h3>
-                  <div className="relative z-10 space-y-2">
-                      {yearlyOutlook.map(yearData => (
-                          <div key={yearData.year} className="flex justify-between items-center text-sm">
-                              <span className="font-medium text-skin-muted">{yearData.year}:</span>
-                              <span className="font-bold text-skin-text bg-skin-input/50 px-2 py-0.5 rounded-md">{yearData.count} milestones</span>
-                          </div>
-                      ))}
-                  </div>
-                  <button 
-                    onClick={() => setCurrentView('visualizations')}
-                    className="mt-4 text-xs font-bold text-skin-primary hover:underline relative z-10"
-                  >
-                    View Full Analysis →
-                  </button>
-              </div>
-            </div>
+                {/* Fun Fact Tile */}
+                <div className="bg-skin-card/40 backdrop-blur-2xl p-5 rounded-[2rem] shadow-lg border border-white/20 flex flex-col justify-center">
+                     <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+                            <Info size={16} />
+                        </div>
+                        <span className="font-bold text-sm text-skin-text">Did You Know?</span>
+                    </div>
+                    <p className="text-xs text-skin-muted leading-relaxed font-medium">
+                        We calculate based on Powers of 10, Repdigits (11,111), and mathematical sequences like Fibonacci to find hidden gems in your timeline.
+                    </p>
+                </div>
 
-            {/* Right Column: Visualization & Feed */}
-            <div className="lg:col-span-8 space-y-8">
-              <div className="hidden lg:block">
-                  <UpcomingShowcase milestones={milestones} onShare={openShare} />
-              </div>
-              
-              {/* Short Preview List on Dashboard */}
-              <div className="bg-skin-card/50 backdrop-blur-2xl rounded-xl shadow-sm border border-white/20 p-6">
-                  <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-bold text-skin-text flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-amber-500" />
-                        Next 5 Milestones
-                      </h3>
-                      <button onClick={() => setCurrentView('list')} className="text-sm text-skin-primary font-medium hover:underline">View All</button>
-                  </div>
-                  <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-left">
-                          <thead className="border-b border-skin-border/50 text-xs text-skin-muted uppercase">
-                            <tr>
-                                <th className="py-2 px-3">Event</th>
-                                <th className="py-2 px-3">Date</th>
-                                <th className="py-2 px-3">Category</th>
-                                <th className="py-2 px-3 text-right"></th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {nextFiveMilestones.map(m => (
-                                <tr key={m.id} className="border-b border-skin-border/50 last:border-0 hover:bg-skin-base/50 group">
-                                    <td className="py-3 px-3 font-medium text-skin-text">{m.title}</td>
-                                    <td className="py-3 px-3 text-skin-muted whitespace-nowrap">{format(m.date, 'dd MMM yyyy')}</td>
-                                    <td className="py-3 px-3">
-                                        <span className="text-[10px] uppercase font-bold text-skin-muted bg-skin-base/50 border border-skin-border/50 px-1.5 py-0.5 rounded backdrop-blur-sm">
-                                            {m.category}
-                                        </span>
-                                    </td>
-                                    <td className="py-3 px-3 text-right">
-                                        <ShareButton 
-                                            title={m.title} 
-                                            text={m.description} 
-                                            className="opacity-0 group-hover:opacity-100" 
-                                            iconSize={14} 
-                                            onClick={() => openShare(m.title, m.description, m)}
-                                        />
-                                    </td>
-                                </tr>
-                            ))}
-                          </tbody>
-                      </table>
-                  </div>
-              </div>
-            </div>
+                {/* Highlights Tile */}
+                <div className="bg-skin-card/40 backdrop-blur-2xl p-5 rounded-[2rem] shadow-lg border border-white/20 flex flex-col justify-between">
+                     <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                             <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-500">
+                                <Sparkles size={16} />
+                            </div>
+                            <span className="font-bold text-sm text-skin-text">Recent</span>
+                        </div>
+                        <button onClick={() => setCurrentView('list')} className="text-[10px] font-bold text-skin-primary bg-skin-primary/10 px-2 py-1 rounded-lg hover:bg-skin-primary hover:text-white transition-colors">VIEW ALL</button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                        {milestones
+                            .filter(m => m.date > new Date(new Date().setDate(new Date().getDate() - 30))) 
+                            .filter(m => m.isPast || differenceInSeconds(m.date, new Date()) < 2592000)
+                            .sort((a,b) => Math.abs(a.date.getTime() - new Date().getTime()) - Math.abs(b.date.getTime() - new Date().getTime()))
+                            .slice(0, 2)
+                            .map(m => (
+                                <div key={m.id} className="flex items-center justify-between p-2 rounded-xl bg-skin-base/30 border border-white/5">
+                                    <div className="truncate pr-2">
+                                        <div className="text-xs font-bold text-skin-text truncate">{m.title}</div>
+                                        <div className="text-[10px] text-skin-muted">{m.date.toLocaleDateString()}</div>
+                                    </div>
+                                </div>
+                            ))
+                        }
+                    </div>
+                </div>
+
+             </div>
           </div>
         );
     }
   };
 
   return (
-    <div className="min-h-screen bg-skin-base text-skin-text transition-colors duration-300">
+    <div className="min-h-screen text-skin-text transition-colors duration-300">
       
       {/* Share Modal */}
       <ShareModal 
@@ -292,7 +303,7 @@ const App: React.FC = () => {
         onShareApp={handleShareApp}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-32">
         {renderContent()}
       </div>
     </div>

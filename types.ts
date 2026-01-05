@@ -64,5 +64,4 @@ export interface UserProfile {
   tob: string;
   theme: ThemeId;
   avatar?: string; // Base64 string of user image
-  coverImage?: string; // Base64 string for backgrounds
 }

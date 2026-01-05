@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, BarChart2, List, Settings, UserCircle, Menu, X, Share2, Github, Info, Image, Video, Download } from 'lucide-react';
+import { LayoutDashboard, BarChart2, List, Settings, UserCircle, Menu, X, Share2, Github, Info, Image, Video } from 'lucide-react';
 import Logo from './Logo';
 
 interface Props {
-  currentView: 'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about' | 'export';
-  setView: (view: 'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about' | 'export') => void;
+  currentView: 'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about';
+  setView: (view: 'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about') => void;
   onShareApp: () => void;
 }
 
@@ -16,7 +16,7 @@ const NavBar: React.FC<Props> = ({ currentView, setView, onShareApp }) => {
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
     { id: 'visualizations', label: 'Graphs', icon: BarChart2 },
     { id: 'list', label: 'List', icon: List },
-    { id: 'export', label: 'Export', icon: Download },
+    { id: 'profile', label: 'Profile', icon: UserCircle },
   ] as const;
 
   const handleNavClick = (view: any) => {
@@ -55,10 +55,10 @@ const NavBar: React.FC<Props> = ({ currentView, setView, onShareApp }) => {
                 <Share2 size={16} /> Share App
              </button>
              <button 
-                onClick={() => setView('profile')}
-                className="p-2 rounded-full bg-skin-input/60 text-skin-primary backdrop-blur-sm"
+                onClick={onShareApp}
+                className="sm:hidden p-2 rounded-full bg-skin-input/60 text-skin-primary backdrop-blur-sm"
              >
-                <UserCircle size={22} />
+                <Share2 size={20} />
              </button>
          </div>
 
@@ -76,9 +76,6 @@ const NavBar: React.FC<Props> = ({ currentView, setView, onShareApp }) => {
                  </button>
                  <button onClick={() => handleNavClick('list')} className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-skin-input/50 text-left text-sm font-medium text-skin-text transition-colors">
                     <List size={18} className="text-skin-primary" /> Full Milestone List
-                 </button>
-                 <button onClick={() => handleNavClick('export')} className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-skin-input/50 text-left text-sm font-medium text-skin-text transition-colors">
-                    <Download size={18} className="text-skin-primary" /> Export Events
                  </button>
                  <button onClick={() => handleNavClick('profile')} className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-skin-input/50 text-left text-sm font-medium text-skin-text transition-colors">
                     <UserCircle size={18} className="text-skin-primary" /> Profile & Settings

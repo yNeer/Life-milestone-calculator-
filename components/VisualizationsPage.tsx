@@ -1,227 +1,289 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   ResponsiveContainer, 
-  BarChart, Bar, CartesianGrid, Legend, Cell, PieChart, Pie,
-  XAxis, YAxis, Tooltip
+  BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, 
+  Cell, RadialBarChart, RadialBar, AreaChart, Area
 } from 'recharts';
 import { Milestone, MilestoneCategory } from '../types';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, differenceInYears } from 'date-fns';
 import TimelineGraph from './TimelineGraph';
+import { Activity, PieChart as PieIcon, BarChart3, Calendar, Zap, Layers } from 'lucide-react';
 
 interface Props {
   milestones: Milestone[];
   dob: Date;
 }
 
-const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
-  const [chartType, setChartType] = useState<'scatter' | 'bar' | 'pie' | 'birthdays' | 'years'>('scatter');
-
-  // --- Data Prep for Bar (Count by Category) ---
-  const barDataRaw = milestones.reduce((acc, curr) => {
-    acc[curr.category] = (acc[curr.category] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-  
-  const barData = Object.entries(barDataRaw).map(([name, value]) => ({
-    name,
-    value: Number(value),
-    // Find color from first milestone of this category
-    color: milestones.find(m => m.category === name)?.color || '#ccc'
-  })).sort((a, b) => b.value - a.value);
-
-  // --- Data Prep for Birthdays ---
-  const now = new Date();
-  const birthdayData = milestones
-    .filter(m => m.category === MilestoneCategory.Birthday && !m.isPast)
-    .sort((a, b) => a.date.getTime() - b.date.getTime())
-    .slice(0, 5) // Next 5 birthdays
-    .map(m => ({
-        age: m.value,
-        days: differenceInDays(m.date, now),
-        dateStr: format(m.date, 'MMM d, yyyy')
-    }));
-
-  // --- Data Prep for Yearly Chart (Stacked) ---
-  const yearlyDataMap = new Map<number, Record<string, number>>();
-  const allCategoriesSet = new Set<string>();
-
-  milestones.forEach(m => {
-    const y = m.date.getFullYear();
-    if (!yearlyDataMap.has(y)) yearlyDataMap.set(y, {});
-    
-    const cat = m.category;
-    allCategoriesSet.add(cat);
-    
-    const yearObj = yearlyDataMap.get(y)!;
-    yearObj[cat] = (yearObj[cat] || 0) + 1;
-  });
-
-  const yearlyData = Array.from(yearlyDataMap.entries())
-    .map(([year, counts]) => ({
-        year,
-        ...counts
-    }))
-    .sort((a, b) => a.year - b.year);
-
-  const yearlyCategories = Array.from(allCategoriesSet);
-  const getCategoryColor = (cat: string) => milestones.find(m => m.category === cat)?.color || '#8884d8';
-
-
-  // --- Stats Calculation ---
-  const currentYear = now.getFullYear();
-  const eventsThisYear = milestones.filter(m => m.date.getFullYear() === currentYear).length;
-
-  // --- Render Functions ---
-
-  const renderBar = () => (
-    <ResponsiveContainer width="100%" height={500}>
-      <BarChart data={barData} layout="vertical" margin={{ top: 20, right: 30, left: 40, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" opacity={0.5}/>
-        <XAxis type="number" hide />
-        <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11, fill: 'var(--color-muted)' }} />
-        <Tooltip 
-          cursor={{fill: 'var(--color-input)'}}
-          contentStyle={{ 
-            borderRadius: '8px', 
-            border: '1px solid var(--color-border)',
-            backgroundColor: 'var(--color-card)',
-            color: 'var(--color-text)'
-          }}
+const IOSSegmentedControl = ({ options, selected, onChange }: { options: string[], selected: string, onChange: (val: any) => void }) => (
+    <div className="bg-skin-input/50 p-1 rounded-xl flex relative border border-white/10 backdrop-blur-md">
+        {options.map((opt) => {
+            const isActive = selected === opt;
+            return (
+                <button
+                    key={opt}
+                    onClick={() => onChange(opt)}
+                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-300 capitalize z-10 ${isActive ? 'text-skin-text shadow-sm' : 'text-skin-muted hover:text-skin-text'}`}
+                >
+                    {opt}
+                </button>
+            );
+        })}
+        {/* Sliding Background */}
+        <div 
+            className="absolute top-1 bottom-1 bg-skin-card rounded-lg shadow-sm transition-all duration-300 ease-out border border-black/5"
+            style={{ 
+                left: `${(options.indexOf(selected) / options.length) * 100}%`, 
+                marginLeft: '4px',
+                width: `calc(${100 / options.length}% - 8px)`
+            }}
         />
-        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
-          {barData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.color} />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  );
-
-  const renderPie = () => (
-     <ResponsiveContainer width="100%" height={500}>
-        <PieChart>
-          <Pie
-            data={barData}
-            cx="50%"
-            cy="50%"
-            innerRadius={80}
-            outerRadius={160}
-            paddingAngle={2}
-            dataKey="value"
-            stroke="var(--color-card)"
-          >
-            {barData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Pie>
-          <Tooltip contentStyle={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }} />
-          <Legend verticalAlign="bottom" height={36}/>
-        </PieChart>
-     </ResponsiveContainer>
-  );
-
-  const renderYearlyChart = () => (
-     <ResponsiveContainer width="100%" height={500}>
-        <BarChart data={yearlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5}/>
-            <XAxis dataKey="year" tick={{ fontSize: 11, fill: 'var(--color-muted)' }} />
-            <YAxis tick={{ fontSize: 11, fill: 'var(--color-muted)' }} />
-            <Tooltip 
-                cursor={{fill: 'var(--color-input)'}}
-                contentStyle={{ 
-                    borderRadius: '8px', 
-                    border: '1px solid var(--color-border)',
-                    backgroundColor: 'var(--color-card)',
-                    color: 'var(--color-text)'
-                }}
-            />
-            <Legend wrapperStyle={{ paddingTop: '20px' }}/>
-            {yearlyCategories.map(cat => (
-                <Bar key={cat} dataKey={cat} stackId="a" fill={getCategoryColor(cat)} />
-            ))}
-        </BarChart>
-     </ResponsiveContainer>
-  );
-
-  const renderBirthdayChart = () => (
-    <div className="h-[500px] flex flex-col justify-center">
-        <h3 className="text-center text-skin-muted mb-4 text-sm font-medium uppercase tracking-wide">Days Until Next 5 Birthdays</h3>
-        <ResponsiveContainer width="100%" height="90%">
-            <BarChart data={birthdayData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" opacity={0.5} />
-                <XAxis type="number" hide />
-                <YAxis dataKey="age" type="category" width={80} tickFormatter={(val) => `Age ${val}`} tick={{fontSize: 12, fontWeight: 600, fill: 'var(--color-muted)'}} />
-                <Tooltip 
-                    cursor={{fill: 'var(--color-input)'}}
-                    content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            const d = payload[0].payload as any;
-                            return (
-                                <div className="bg-skin-card p-3 border border-skin-border shadow-md rounded-lg text-sm">
-                                    <p className="font-bold text-skin-primary">Turning {d.age}</p>
-                                    <p className="text-skin-muted">{d.dateStr}</p>
-                                    <p className="text-xs font-semibold mt-1 text-skin-text">{d.days} days to go</p>
-                                </div>
-                            )
-                        }
-                        return null;
-                    }}
-                />
-                <Bar dataKey="days" fill="#f43f5e" radius={[0, 4, 4, 0]} barSize={30} label={{ position: 'right', fill: 'var(--color-muted)', fontSize: 12, formatter: (val: number) => `${val} days` }} />
-            </BarChart>
-        </ResponsiveContainer>
     </div>
+);
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-skin-card/80 backdrop-blur-xl p-3 border border-white/20 shadow-2xl rounded-2xl min-w-[150px]">
+                <p className="text-xs font-bold text-skin-muted uppercase tracking-wider mb-1">{label}</p>
+                {payload.map((entry: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between gap-4">
+                        <span className="text-sm font-semibold text-skin-text capitalize" style={{ color: entry.color }}>
+                            {entry.name}
+                        </span>
+                        <span className="text-base font-black font-mono">
+                            {entry.value}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    return null;
+};
+
+const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
+  const [viewMode, setViewMode] = useState<'overview' | 'distribution' | 'timeline'>('overview');
+  const now = new Date();
+  
+  // --- Data Prep ---
+
+  // 1. Category Distribution (Bar Data)
+  const categoryData = useMemo(() => {
+      const counts: Record<string, number> = {};
+      milestones.forEach(m => { counts[m.category] = (counts[m.category] || 0) + 1; });
+      return Object.entries(counts)
+        .map(([name, value]) => ({ 
+            name, 
+            value, 
+            color: milestones.find(m => m.category === name)?.color || '#ccc' 
+        }))
+        .sort((a, b) => b.value - a.value);
+  }, [milestones]);
+
+  // 2. Life Progress (Radial Data)
+  const lifeProgressData = useMemo(() => {
+      const ageYears = differenceInYears(now, dob);
+      const ageDays = differenceInDays(now, dob);
+      // Benchmarks
+      const cap100 = 100;
+      const percentLife = Math.min((ageYears / cap100) * 100, 100);
+      
+      return [
+        { name: '100 Years', value: 100, fill: 'var(--color-input)' }, // Track
+        { name: 'Life Lived', value: percentLife, fill: '#f43f5e' }   // Progress
+      ];
+  }, [dob, now]);
+
+  // 3. Yearly Density (Area Data)
+  const densityData = useMemo(() => {
+      const yearMap = new Map<number, number>();
+      milestones.forEach(m => {
+          const y = m.date.getFullYear();
+          yearMap.set(y, (yearMap.get(y) || 0) + 1);
+      });
+      
+      const years = Array.from(yearMap.keys()).sort();
+      const minYear = years[0];
+      const maxYear = years[years.length - 1];
+      
+      const data = [];
+      for(let y = minYear; y <= maxYear; y++) {
+          data.push({ year: y, count: yearMap.get(y) || 0 });
+      }
+      return data;
+  }, [milestones]);
+
+  // --- Renderers ---
+
+  const renderOverview = () => (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+          {/* Life Ring */}
+          <div className="bg-skin-base/30 rounded-[2rem] p-6 flex flex-col items-center justify-center relative overflow-hidden border border-white/10">
+              <div className="absolute top-4 left-4 flex items-center gap-2">
+                  <div className="p-1.5 bg-rose-500 rounded-lg text-white"><Activity size={16} /></div>
+                  <span className="text-xs font-bold text-skin-muted uppercase tracking-wider">Life Progress</span>
+              </div>
+              
+              <div className="relative w-64 h-64 flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                    <RadialBarChart 
+                        innerRadius="70%" 
+                        outerRadius="100%" 
+                        barSize={20} 
+                        data={lifeProgressData} 
+                        startAngle={90} 
+                        endAngle={-270}
+                    >
+                        <RadialBar
+                            background
+                            cornerRadius={20}
+                            dataKey="value"
+                        />
+                    </RadialBarChart>
+                </ResponsiveContainer>
+                {/* Center Text */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-4xl font-black text-skin-text">{lifeProgressData[1].value.toFixed(0)}%</span>
+                    <span className="text-xs font-bold text-skin-muted uppercase">of 100 Years</span>
+                </div>
+              </div>
+          </div>
+
+          {/* Density Heatmap */}
+          <div className="bg-skin-base/30 rounded-[2rem] p-6 flex flex-col justify-between border border-white/10">
+               <div className="flex items-center gap-2 mb-4">
+                  <div className="p-1.5 bg-skin-primary rounded-lg text-white"><Zap size={16} /></div>
+                  <span className="text-xs font-bold text-skin-muted uppercase tracking-wider">Event Density</span>
+              </div>
+              <div className="flex-1 min-h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={densityData}>
+                          <defs>
+                            <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.4}/>
+                                <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.3}/>
+                          <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--color-muted)', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                          <Area 
+                            type="monotone" 
+                            dataKey="count" 
+                            stroke="var(--color-primary)" 
+                            strokeWidth={3}
+                            fillOpacity={1} 
+                            fill="url(#colorCount)" 
+                          />
+                      </AreaChart>
+                  </ResponsiveContainer>
+              </div>
+              <p className="text-[10px] text-center text-skin-muted mt-2 font-medium">Timeline Activity Distribution</p>
+          </div>
+      </div>
+  );
+
+  const renderDistribution = () => (
+      <div className="h-[450px] w-full bg-skin-base/30 rounded-[2rem] p-6 border border-white/10 flex flex-col">
+          <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-indigo-500 rounded-lg text-white"><Layers size={16} /></div>
+                  <span className="text-xs font-bold text-skin-muted uppercase tracking-wider">Category Breakdown</span>
+              </div>
+          </div>
+          <div className="flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={categoryData} layout="vertical" margin={{ left: 0, right: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" opacity={0.3}/>
+                    <XAxis type="number" hide />
+                    <YAxis 
+                        dataKey="name" 
+                        type="category" 
+                        width={80} 
+                        tick={{ fontSize: 11, fontWeight: 600, fill: 'var(--color-muted)' }} 
+                        axisLine={false}
+                        tickLine={false}
+                    />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--color-input)', opacity: 0.4, radius: 8 }} />
+                    <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={20} background={{ fill: 'var(--color-input)', radius: 6 }}>
+                        {categoryData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+          </div>
+      </div>
   );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="bg-skin-card/70 backdrop-blur-xl p-6 rounded-xl shadow-sm border border-white/20">
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <div>
-            <h2 className="text-xl font-bold text-skin-text">Milestone Analysis</h2>
-            <p className="text-sm text-skin-muted">Explore the distribution of your life events</p>
-          </div>
-          <div className="flex flex-wrap gap-1 bg-skin-input p-1 rounded-lg backdrop-blur-sm">
-            {(['scatter', 'bar', 'pie', 'years', 'birthdays'] as const).map(t => (
-              <button
-                key={t}
-                onClick={() => setChartType(t)}
-                className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md capitalize transition-all ${
-                  chartType === t ? 'bg-skin-card shadow-sm border border-skin-border text-skin-text' : 'text-skin-muted hover:text-skin-text'
-                }`}
-              >
-                {t === 'birthdays' ? 'Birthday Horizon' : t === 'years' ? 'Yearly Distribution' : t}
-              </button>
-            ))}
-          </div>
+      
+      {/* Header & Controls */}
+      <div className="bg-skin-card/40 backdrop-blur-2xl p-2 rounded-[2.5rem] shadow-xl border border-white/20 flex flex-col md:flex-row justify-between items-center gap-4 px-6 py-4">
+        <div>
+           <h2 className="text-2xl font-bold text-skin-text tracking-tight">Analytics</h2>
+           <p className="text-xs text-skin-muted font-bold uppercase tracking-wide">Visualize your journey</p>
         </div>
-
-        <div className="w-full">
-          {chartType === 'scatter' && <TimelineGraph milestones={milestones} dob={dob} />}
-          {chartType === 'bar' && renderBar()}
-          {chartType === 'pie' && renderPie()}
-          {chartType === 'years' && renderYearlyChart()}
-          {chartType === 'birthdays' && renderBirthdayChart()}
+        <div className="w-full md:w-64">
+            <IOSSegmentedControl 
+                options={['overview', 'distribution', 'timeline']} 
+                selected={viewMode} 
+                onChange={setViewMode} 
+            />
         </div>
       </div>
+
+      {/* Main Content Area */}
+      <div className="bg-skin-card/40 backdrop-blur-2xl p-6 rounded-[2.5rem] shadow-xl border border-white/20 min-h-[500px]">
+          {viewMode === 'overview' && renderOverview()}
+          {viewMode === 'distribution' && renderDistribution()}
+          {viewMode === 'timeline' && <TimelineGraph milestones={milestones} dob={dob} />}
+      </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-indigo-500/10 p-4 rounded-xl border border-indigo-500/20 backdrop-blur-sm">
-              <div className="text-2xl font-bold text-indigo-600">{milestones.length}</div>
-              <div className="text-xs text-indigo-500/80 uppercase font-semibold">Total Milestones</div>
+      {/* Bottom Summary Grid (Apple Health Style) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-skin-card/50 backdrop-blur-xl p-5 rounded-[1.8rem] border border-white/20 shadow-sm flex flex-col justify-between h-32 group hover:bg-skin-card/70 transition-colors">
+              <div className="flex justify-between items-start">
+                  <div className="flex flex-col">
+                     <span className="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-1">Total</span>
+                     <span className="text-3xl font-black text-skin-text">{milestones.length}</span>
+                  </div>
+                  <div className="p-2 bg-indigo-500/10 text-indigo-500 rounded-full"><BarChart3 size={18}/></div>
+              </div>
+              <div className="text-[10px] text-skin-muted font-bold">Milestones Generated</div>
           </div>
-          <div className="bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20 backdrop-blur-sm">
-              <div className="text-2xl font-bold text-emerald-600">{milestones.filter(m => !m.isPast).length}</div>
-              <div className="text-xs text-emerald-500/80 uppercase font-semibold">Future Events</div>
+
+          <div className="bg-skin-card/50 backdrop-blur-xl p-5 rounded-[1.8rem] border border-white/20 shadow-sm flex flex-col justify-between h-32 group hover:bg-skin-card/70 transition-colors">
+              <div className="flex justify-between items-start">
+                  <div className="flex flex-col">
+                     <span className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">Future</span>
+                     <span className="text-3xl font-black text-skin-text">{milestones.filter(m => !m.isPast).length}</span>
+                  </div>
+                  <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-full"><Calendar size={18}/></div>
+              </div>
+              <div className="text-[10px] text-skin-muted font-bold">Upcoming Moments</div>
           </div>
-           <div className="bg-amber-500/10 p-4 rounded-xl border border-amber-500/20 backdrop-blur-sm">
-              <div className="text-2xl font-bold text-amber-600">{milestones.filter(m => m.category === MilestoneCategory.Math).length}</div>
-              <div className="text-xs text-amber-500/80 uppercase font-semibold">Math Curiosities</div>
+
+           <div className="bg-skin-card/50 backdrop-blur-xl p-5 rounded-[1.8rem] border border-white/20 shadow-sm flex flex-col justify-between h-32 group hover:bg-skin-card/70 transition-colors">
+              <div className="flex justify-between items-start">
+                  <div className="flex flex-col">
+                     <span className="text-xs font-bold text-amber-500 uppercase tracking-wider mb-1">Math</span>
+                     <span className="text-3xl font-black text-skin-text">{milestones.filter(m => m.category === MilestoneCategory.Math).length}</span>
+                  </div>
+                  <div className="p-2 bg-amber-500/10 text-amber-500 rounded-full"><PieIcon size={18}/></div>
+              </div>
+              <div className="text-[10px] text-skin-muted font-bold">Math Curiosities</div>
           </div>
-          <div className="bg-rose-500/10 p-4 rounded-xl border border-rose-500/20 backdrop-blur-sm">
-              <div className="text-2xl font-bold text-rose-600">{eventsThisYear}</div>
-              <div className="text-xs text-rose-500/80 uppercase font-semibold">Events in {currentYear}</div>
+
+          <div className="bg-skin-card/50 backdrop-blur-xl p-5 rounded-[1.8rem] border border-white/20 shadow-sm flex flex-col justify-between h-32 group hover:bg-skin-card/70 transition-colors">
+              <div className="flex justify-between items-start">
+                  <div className="flex flex-col">
+                     <span className="text-xs font-bold text-rose-500 uppercase tracking-wider mb-1">This Year</span>
+                     <span className="text-3xl font-black text-skin-text">{milestones.filter(m => m.date.getFullYear() === now.getFullYear()).length}</span>
+                  </div>
+                  <div className="p-2 bg-rose-500/10 text-rose-500 rounded-full"><Activity size={18}/></div>
+              </div>
+              <div className="text-[10px] text-skin-muted font-bold">Events in {now.getFullYear()}</div>
           </div>
       </div>
     </div>

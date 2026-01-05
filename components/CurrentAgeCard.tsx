@@ -1,17 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  differenceInSeconds, 
-  differenceInMinutes, 
-  differenceInHours, 
-  differenceInDays, 
-  differenceInWeeks, 
-  differenceInMonths,
-  differenceInYears,
-  format
+  differenceInSeconds, differenceInMinutes, differenceInHours, 
+  differenceInDays, differenceInWeeks, differenceInMonths, format
 } from 'date-fns';
-import { Timer, Calendar, Clock, Layers, Zap, Activity, Crown, Flag } from 'lucide-react';
+import { Timer, Calendar, Clock, Hourglass } from 'lucide-react';
 import ShareButton from './ShareButton';
-import { Milestone, MilestoneCategory } from '../types';
+import { Milestone } from '../types';
 
 interface Props {
   dob: string;
@@ -22,37 +16,21 @@ interface Props {
 const CurrentAgeCard: React.FC<Props> = ({ dob, tob, onShare }) => {
   const [now, setNow] = useState(new Date());
   const [stats, setStats] = useState({
-    decades: 0,
-    years: 0,
-    months: 0,
-    weeks: 0,
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0
+    months: 0, weeks: 0, days: 0, hours: 0, minutes: 0, seconds: 0
   });
 
-  // Update time every second
   useEffect(() => {
-    const timer = setInterval(() => {
-      setNow(new Date());
-    }, 1000);
+    const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Calculate stats whenever 'now' or inputs change
   useEffect(() => {
     if (!dob) return;
-
     const [h, m] = tob.split(':').map(Number);
     const birthDate = new Date(dob);
     birthDate.setHours(h || 0, m || 0, 0, 0);
 
-    const years = differenceInYears(now, birthDate);
-
     setStats({
-      decades: Math.floor(years / 10),
-      years: years,
       months: differenceInMonths(now, birthDate),
       weeks: differenceInWeeks(now, birthDate),
       days: differenceInDays(now, birthDate),
@@ -62,160 +40,63 @@ const CurrentAgeCard: React.FC<Props> = ({ dob, tob, onShare }) => {
     });
   }, [now, dob, tob]);
 
-  const shareText = `I have been alive for ${stats.days.toLocaleString()} days, ${stats.hours.toLocaleString()} hours, and counting! Check your milestones.`;
-  
-  const handleShare = (e: React.MouseEvent) => {
-      const ageMilestone: Milestone = {
-          id: 'current-age-stats',
-          title: 'My Current Age Stats',
-          description: shareText,
-          date: new Date(), 
-          category: MilestoneCategory.Custom,
-          isPast: true,
-          color: '#3b82f6', 
-          value: stats.days,
-          unit: 'days'
-      };
-      onShare("My Current Age", shareText, ageMilestone);
-  };
+  const shareText = `I have been alive for ${stats.days.toLocaleString()} days, ${stats.hours.toLocaleString()} hours!`;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const StatBox = ({ label, value, icon: Icon, gradientFrom, gradientTo, delay }: any) => (
-    <div 
-        className={`
-            relative overflow-hidden rounded-2xl p-4 
-            bg-gradient-to-br from-white/20 to-white/5 dark:from-white/10 dark:to-white/5
-            backdrop-blur-md border border-white/20 shadow-lg 
-            hover:scale-[1.02] hover:shadow-xl hover:border-white/30 transition-all duration-300 group
-            animate-in fade-in slide-in-from-bottom-4 fill-mode-backwards
-        `}
-        style={{ animationDelay: `${delay}ms` }}
-    >
-        {/* Glow effect on hover */}
-        <div className={`absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br ${gradientFrom} ${gradientTo} opacity-20 blur-2xl group-hover:opacity-40 transition-opacity rounded-full`} />
-        
-        <div className="relative z-10 flex flex-col items-center justify-center text-center">
-             <div className={`mb-3 p-2.5 rounded-xl bg-gradient-to-br ${gradientFrom} ${gradientTo} text-white shadow-lg group-hover:rotate-12 transition-transform duration-300`}>
-                <Icon size={20} strokeWidth={2.5} />
-             </div>
-             <div className="text-xl md:text-3xl font-black tracking-tight text-skin-text tabular-nums break-all">
-                {value.toLocaleString()}
-             </div>
-             <div className="text-[10px] font-bold uppercase tracking-widest text-skin-muted opacity-80 mt-1">{label}</div>
-        </div>
+  const StatTile = ({ label, value, icon: Icon, color }: any) => (
+    <div className="bg-skin-card/40 backdrop-blur-md p-3 rounded-2xl border border-white/20 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden group">
+      <div className={`absolute top-0 left-0 w-full h-1 bg-${color}-500 opacity-50`}></div>
+      <Icon className={`w-4 h-4 mb-1 text-${color}-500`} />
+      <div className="text-lg font-bold text-skin-text tabular-nums leading-none mb-1">
+        {value.toLocaleString()}
+      </div>
+      <div className="text-[9px] text-skin-muted font-bold uppercase tracking-wide opacity-80">{label}</div>
     </div>
   );
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-skin-card/30 backdrop-blur-xl border border-white/20 shadow-2xl mb-8 group/card">
-        {/* Abstract Background Shapes */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full overflow-hidden pointer-events-none opacity-30">
-            <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-500/30 rounded-full blur-3xl animate-blob mix-blend-multiply dark:mix-blend-screen"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-purple-500/30 rounded-full blur-3xl animate-blob animation-delay-2000 mix-blend-multiply dark:mix-blend-screen"></div>
-            <div className="absolute top-[20%] right-[20%] w-[40%] h-[40%] bg-pink-500/30 rounded-full blur-3xl animate-blob animation-delay-4000 mix-blend-multiply dark:mix-blend-screen"></div>
-        </div>
-
-        <div className="absolute top-4 right-4 z-20">
+    <div className="bg-skin-card/30 backdrop-blur-2xl rounded-[2rem] shadow-xl border border-white/20 p-5 flex flex-col gap-4 relative">
+        <div className="absolute top-4 right-4">
              <ShareButton 
-                title="My Life Stats" 
+                title="Life Stats" 
                 text={shareText} 
-                className="text-skin-muted hover:text-skin-primary hover:bg-white/20 bg-white/10 backdrop-blur-md shadow-sm border border-white/10" 
-                onClick={handleShare}
+                className="text-skin-muted hover:text-skin-primary bg-skin-card/50" 
+                onClick={() => onShare("My Life Stats", shareText)}
              />
         </div>
 
-        {/* Header / Clock */}
-        <div className="relative z-10 p-8 pb-4 text-center border-b border-white/10">
-            
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold text-skin-muted mb-4 shadow-inner">
-                <Clock size={12} className="animate-[spin_4s_linear_infinite]" />
-                <span className="uppercase tracking-wider">Live Chronometer</span>
-            </div>
-
-            <div className="mb-4">
-                <h2 className="text-6xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 drop-shadow-sm tabular-nums leading-none pb-2">
-                    {format(now, 'HH:mm:ss')}
-                </h2>
-                <div className="text-sm font-semibold text-skin-muted tracking-wide mt-2 uppercase opacity-80">
-                    {format(now, 'EEEE, d MMMM yyyy')}
-                </div>
+        <div className="flex flex-col">
+            <h3 className="text-sm font-bold text-skin-muted uppercase tracking-wider mb-1 flex items-center gap-2">
+                <Hourglass className="w-4 h-4" /> Time Alive
+            </h3>
+            <div className="text-2xl font-mono font-bold text-skin-text tabular-nums">
+                {format(now, 'HH:mm:ss')}
             </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="relative z-10 p-6 pt-6">
-            <div className="flex items-center justify-center gap-2 mb-6 opacity-80">
-                <Activity size={16} className="text-skin-primary" />
-                <span className="text-xs font-bold uppercase tracking-widest text-skin-muted">Time Lived So Far</span>
-                <div className="h-px w-12 bg-skin-border/50"></div>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                 <StatBox 
-                    label="Decades" 
-                    value={stats.decades} 
-                    icon={Crown} 
-                    gradientFrom="from-yellow-400" 
-                    gradientTo="to-orange-500" 
-                    delay={0} 
-                 />
-                 <StatBox 
-                    label="Years" 
-                    value={stats.years} 
-                    icon={Flag} 
-                    gradientFrom="from-orange-400" 
-                    gradientTo="to-red-500" 
-                    delay={100} 
-                 />
-                 <StatBox 
-                    label="Months" 
-                    value={stats.months} 
-                    icon={Calendar} 
-                    gradientFrom="from-red-400" 
-                    gradientTo="to-pink-500" 
-                    delay={200} 
-                 />
-                 <StatBox 
-                    label="Weeks" 
-                    value={stats.weeks} 
-                    icon={Layers} 
-                    gradientFrom="from-pink-400" 
-                    gradientTo="to-purple-500" 
-                    delay={300} 
-                 />
-                 <StatBox 
-                    label="Days" 
-                    value={stats.days} 
-                    icon={Calendar} 
-                    gradientFrom="from-purple-400" 
-                    gradientTo="to-indigo-500" 
-                    delay={400} 
-                 />
-                 <StatBox 
-                    label="Hours" 
-                    value={stats.hours} 
-                    icon={Clock} 
-                    gradientFrom="from-indigo-400" 
-                    gradientTo="to-blue-500" 
-                    delay={500} 
-                 />
-                 <StatBox 
-                    label="Minutes" 
-                    value={stats.minutes} 
-                    icon={Timer} 
-                    gradientFrom="from-blue-400" 
-                    gradientTo="to-cyan-500" 
-                    delay={600} 
-                 />
-                 <StatBox 
-                    label="Seconds" 
-                    value={stats.seconds} 
-                    icon={Zap} 
-                    gradientFrom="from-cyan-400" 
-                    gradientTo="to-emerald-500" 
-                    delay={700} 
-                 />
-            </div>
+        {/* Mosaic Grid of Stats */}
+        <div className="grid grid-cols-2 gap-2">
+            <StatTile label="Months" value={stats.months} icon={Calendar} color="emerald" />
+            <StatTile label="Weeks" value={stats.weeks} icon={Calendar} color="teal" />
+            <StatTile label="Days" value={stats.days} icon={Calendar} color="blue" />
+            <StatTile label="Hours" value={stats.hours} icon={Clock} color="indigo" />
+        </div>
+        
+        {/* Full width bottom tiles */}
+        <div className="grid grid-cols-1 gap-2">
+             <div className="bg-skin-card/40 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/20 flex justify-between items-center shadow-sm">
+                <div className="flex flex-col text-left">
+                    <span className="text-[10px] uppercase font-bold text-violet-500">Minutes</span>
+                    <span className="text-lg font-bold text-skin-text tabular-nums">{stats.minutes.toLocaleString()}</span>
+                </div>
+                <Clock className="w-5 h-5 text-violet-500 opacity-50" />
+             </div>
+             <div className="bg-skin-card/40 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/20 flex justify-between items-center shadow-sm">
+                <div className="flex flex-col text-left">
+                    <span className="text-[10px] uppercase font-bold text-fuchsia-500">Seconds</span>
+                    <span className="text-lg font-bold text-skin-text tabular-nums">{stats.seconds.toLocaleString()}</span>
+                </div>
+                <Timer className="w-5 h-5 text-fuchsia-500 opacity-50" />
+             </div>
         </div>
     </div>
   );

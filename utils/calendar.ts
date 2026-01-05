@@ -45,13 +45,3 @@ export const downloadICS = (filename: string, content: string) => {
   element.click();
   document.body.removeChild(element);
 };
-
-export const generateSingleICS = (milestone: Milestone, appName: string = "Life Milestones"): string => {
-  return generateICS([milestone], appName);
-};
-
-export const downloadSingleICS = (milestone: Milestone) => {
-    const icsContent = generateSingleICS(milestone);
-    const filename = `${milestone.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ics`;
-    downloadICS(filename, icsContent);
-};

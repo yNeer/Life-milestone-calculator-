@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { Milestone, MilestoneCategory } from '../types';
 import { format } from 'date-fns';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, ZoomIn } from 'lucide-react';
 
 interface Props {
   milestones: Milestone[];
@@ -17,13 +17,13 @@ const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data = payload[0].payload as any; 
     return (
-      <div className="bg-skin-card p-3 border border-skin-border shadow-lg rounded-lg text-sm max-w-xs z-50">
-        <p className="font-bold text-skin-text">{data.title}</p>
-        <p className="text-skin-muted mb-2">{data.formattedDate}</p>
-        <p className="text-xs text-skin-muted opacity-80">{data.description}</p>
-        {data.sourceEventName !== 'Birth' && (
-           <p className="text-xs text-amber-600 mt-1 font-medium">{data.sourceEventName}</p>
-        )}
+      <div className="bg-skin-card/90 backdrop-blur-xl p-3 border border-white/20 shadow-xl rounded-xl text-sm max-w-[200px] z-50">
+        <div className="flex items-center gap-2 mb-1">
+             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: data.color }} />
+             <p className="font-bold text-skin-text text-xs leading-tight">{data.title}</p>
+        </div>
+        <p className="text-skin-muted text-[10px] font-bold uppercase tracking-wide mb-2">{data.formattedDate}</p>
+        <p className="text-xs text-skin-muted opacity-80 leading-relaxed">{data.description}</p>
       </div>
     );
   }
@@ -128,73 +128,21 @@ const TimelineGraph: React.FC<Props> = ({ milestones, dob }) => {
     setTouchStartDomain(null);
   };
 
-  // Date Input Handlers
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const date = new Date(e.target.value);
-      if(!isNaN(date.getTime())) {
-          const age = (date.getTime() - dob.getTime()) / MS_PER_YEAR;
-          setLeft(age);
-      }
-  };
-
-  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const date = new Date(e.target.value);
-      if(!isNaN(date.getTime())) {
-          const age = (date.getTime() - dob.getTime()) / MS_PER_YEAR;
-          setRight(age);
-      }
-  };
-
-  // Convert current domain to date strings for inputs
-  const getDomainDate = (val: number | 'dataMin' | 'dataMax', type: 'min' | 'max') => {
-      if (typeof val === 'number') {
-          const date = new Date(dob.getTime() + val * MS_PER_YEAR);
-          return date.toISOString().split('T')[0];
-      }
-      // If auto, find actual min/max from data
-      if (data.length === 0) return '';
-      const dates = data.map(d => d.date.getTime());
-      if (dates.length === 0) return '';
-      
-      const ts = type === 'min' ? Math.min(...dates) : Math.max(...dates);
-      return new Date(ts).toISOString().split('T')[0];
-  };
-
   return (
-    <div className="bg-skin-card rounded-xl shadow-sm border border-skin-border p-4 w-full h-full flex flex-col min-h-[500px]">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-        <h3 className="text-lg font-bold text-skin-text flex items-center gap-2">
-            Timeline
-            <span className="text-xs font-normal text-skin-muted bg-skin-input px-2 py-0.5 rounded-full border border-skin-border">
-                Drag or Pinch to Zoom
-            </span>
-        </h3>
+    <div className="bg-skin-base/30 rounded-[2rem] border border-white/10 p-4 w-full h-full flex flex-col min-h-[450px]">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4 px-2">
         <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-skin-input p-1 rounded-lg border border-skin-border">
-                <span className="text-xs text-skin-muted pl-2">From</span>
-                <input 
-                    type="date" 
-                    className="bg-transparent text-xs font-medium text-skin-text focus:outline-none w-26"
-                    value={getDomainDate(left, 'min')}
-                    onChange={handleStartDateChange}
-                />
-                <span className="text-skin-border">|</span>
-                <span className="text-xs text-skin-muted">To</span>
-                <input 
-                    type="date" 
-                    className="bg-transparent text-xs font-medium text-skin-text focus:outline-none w-26"
-                    value={getDomainDate(right, 'max')}
-                    onChange={handleEndDateChange}
-                />
-            </div>
-            <button 
-                onClick={zoomOut}
-                className="p-1.5 text-skin-muted hover:text-skin-primary hover:bg-skin-input rounded-lg transition-colors border border-transparent hover:border-skin-border"
-                title="Reset Zoom"
-            >
-                <RotateCcw className="w-4 h-4" />
-            </button>
+            <div className="p-1.5 bg-blue-500 rounded-lg text-white"><ZoomIn size={16} /></div>
+            <span className="text-xs font-bold text-skin-muted uppercase tracking-wider">Deep Timeline</span>
         </div>
+
+        <button 
+            onClick={zoomOut}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-skin-primary bg-skin-primary/10 rounded-full hover:bg-skin-primary hover:text-white transition-colors"
+        >
+            <RotateCcw className="w-3 h-3" />
+            Reset Zoom
+        </button>
       </div>
 
       <div 
@@ -210,16 +158,18 @@ const TimelineGraph: React.FC<Props> = ({ milestones, dob }) => {
             onMouseUp={zoom}
             margin={{ top: 10, right: 10, bottom: 10, left: 0 }}
             >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.2} />
             <XAxis 
                 type="number" 
                 dataKey="xAge" 
                 name="Age" 
                 unit="y" 
                 domain={[left, right]}
-                tick={{ fontSize: 12, fill: 'var(--color-muted)' }}
+                tick={{ fontSize: 10, fontWeight: 600, fill: 'var(--color-muted)' }}
+                axisLine={false}
+                tickLine={false}
                 allowDataOverflow
-                label={{ value: 'Age (Years)', position: 'insideBottom', offset: -5, fill: 'var(--color-muted)', fontSize: 12 }}
+                label={{ value: 'Age (Years)', position: 'insideBottom', offset: -5, fill: 'var(--color-muted)', fontSize: 10, fontWeight: 700 }}
             />
             <YAxis 
                 type="number" 
@@ -227,11 +177,13 @@ const TimelineGraph: React.FC<Props> = ({ milestones, dob }) => {
                 name="Category" 
                 domain={[0, categoryNames.length + 1]} 
                 tickFormatter={(val) => categoryNames[val - 1] || ''}
-                width={80}
-                tick={{ fontSize: 10, fill: 'var(--color-muted)' }}
+                width={70}
+                tick={{ fontSize: 9, fontWeight: 600, fill: 'var(--color-muted)' }}
+                axisLine={false}
+                tickLine={false}
             />
-            <ZAxis type="number" range={[50, 400]} />
-            <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+            <ZAxis type="number" range={[40, 100]} />
+            <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3', strokeOpacity: 0.2 }} />
             
             {categoryNames.map((cat) => (
                 <Scatter 
@@ -239,6 +191,7 @@ const TimelineGraph: React.FC<Props> = ({ milestones, dob }) => {
                     name={cat} 
                     data={data.filter(d => d.category === cat)} 
                     fill={data.find(d => d.category === cat)?.color || '#000'} 
+                    shape="circle"
                 />
             ))}
 
