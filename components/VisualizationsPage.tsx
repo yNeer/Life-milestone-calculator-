@@ -5,13 +5,14 @@ import {
   Cell, RadialBarChart, RadialBar, AreaChart, Area
 } from 'recharts';
 import { Milestone, MilestoneCategory } from '../types';
-import { format, differenceInDays, differenceInYears } from 'date-fns';
+import { differenceInYears } from 'date-fns';
 import TimelineGraph from './TimelineGraph';
-import { Activity, PieChart as PieIcon, BarChart3, Calendar, Zap, Layers } from 'lucide-react';
+import { Activity, PieChart as PieIcon, BarChart3, Calendar, Zap, Layers, ChevronRight } from 'lucide-react';
 
 interface Props {
   milestones: Milestone[];
   dob: Date;
+  onViewEvents: (filterType: 'all' | 'future' | 'past' | 'this_year' | 'math') => void;
 }
 
 const IOSSegmentedControl = ({ options, selected, onChange }: { options: string[], selected: string, onChange: (val: any) => void }) => (
@@ -43,14 +44,14 @@ const IOSSegmentedControl = ({ options, selected, onChange }: { options: string[
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-skin-card/80 backdrop-blur-xl p-3 border border-white/20 shadow-2xl rounded-2xl min-w-[150px]">
+            <div className="bg-skin-card/95 backdrop-blur-xl p-3 border border-skin-border shadow-2xl rounded-2xl min-w-[150px] z-50">
                 <p className="text-xs font-bold text-skin-muted uppercase tracking-wider mb-1">{label}</p>
                 {payload.map((entry: any, index: number) => (
                     <div key={index} className="flex items-center justify-between gap-4">
-                        <span className="text-sm font-semibold text-skin-text capitalize" style={{ color: entry.color }}>
+                        <span className="text-sm font-semibold text-skin-text capitalize" style={{ color: entry.color || entry.fill }}>
                             {entry.name}
                         </span>
-                        <span className="text-base font-black font-mono">
+                        <span className="text-base font-black font-mono text-skin-text">
                             {entry.value}
                         </span>
                     </div>
@@ -61,7 +62,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
 };
 
-const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
+const VisualizationsPage: React.FC<Props> = ({ milestones, dob, onViewEvents }) => {
   const [viewMode, setViewMode] = useState<'overview' | 'distribution' | 'timeline'>('overview');
   const now = new Date();
   
@@ -83,8 +84,6 @@ const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
   // 2. Life Progress (Radial Data)
   const lifeProgressData = useMemo(() => {
       const ageYears = differenceInYears(now, dob);
-      const ageDays = differenceInDays(now, dob);
-      // Benchmarks
       const cap100 = 100;
       const percentLife = Math.min((ageYears / cap100) * 100, 100);
       
@@ -129,13 +128,13 @@ const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
                     <RadialBarChart 
                         innerRadius="70%" 
                         outerRadius="100%" 
-                        barSize={20} 
+                        barSize={15} 
                         data={lifeProgressData} 
                         startAngle={90} 
                         endAngle={-270}
                     >
                         <RadialBar
-                            background
+                            background={{ fill: 'var(--color-input)' }}
                             cornerRadius={20}
                             dataKey="value"
                         />
@@ -204,7 +203,7 @@ const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
                         tickLine={false}
                     />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--color-input)', opacity: 0.4, radius: 8 }} />
-                    <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={20} background={{ fill: 'var(--color-input)', radius: 6 }}>
+                    <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={24} background={{ fill: 'var(--color-input)', radius: 6 }}>
                         {categoryData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
@@ -240,51 +239,75 @@ const VisualizationsPage: React.FC<Props> = ({ milestones, dob }) => {
           {viewMode === 'timeline' && <TimelineGraph milestones={milestones} dob={dob} />}
       </div>
       
-      {/* Bottom Summary Grid (Apple Health Style) */}
+      {/* Bottom Summary Grid - Clickable "Bottles" */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-skin-card/50 backdrop-blur-xl p-5 rounded-[1.8rem] border border-white/20 shadow-sm flex flex-col justify-between h-32 group hover:bg-skin-card/70 transition-colors">
-              <div className="flex justify-between items-start">
+          <button 
+            onClick={() => onViewEvents('all')}
+            className="bg-skin-card/50 backdrop-blur-xl p-5 rounded-[1.8rem] border border-white/20 shadow-sm flex flex-col justify-between h-32 group hover:bg-skin-card/70 transition-all hover:scale-[1.02] text-left"
+          >
+              <div className="flex justify-between items-start w-full">
                   <div className="flex flex-col">
                      <span className="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-1">Total</span>
                      <span className="text-3xl font-black text-skin-text">{milestones.length}</span>
                   </div>
                   <div className="p-2 bg-indigo-500/10 text-indigo-500 rounded-full"><BarChart3 size={18}/></div>
               </div>
-              <div className="text-[10px] text-skin-muted font-bold">Milestones Generated</div>
-          </div>
+              <div className="flex justify-between items-center w-full">
+                  <div className="text-[10px] text-skin-muted font-bold">Milestones Generated</div>
+                  <ChevronRight size={14} className="text-skin-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+          </button>
 
-          <div className="bg-skin-card/50 backdrop-blur-xl p-5 rounded-[1.8rem] border border-white/20 shadow-sm flex flex-col justify-between h-32 group hover:bg-skin-card/70 transition-colors">
-              <div className="flex justify-between items-start">
+          <button 
+            onClick={() => onViewEvents('future')}
+            className="bg-skin-card/50 backdrop-blur-xl p-5 rounded-[1.8rem] border border-white/20 shadow-sm flex flex-col justify-between h-32 group hover:bg-skin-card/70 transition-all hover:scale-[1.02] text-left"
+          >
+              <div className="flex justify-between items-start w-full">
                   <div className="flex flex-col">
                      <span className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">Future</span>
                      <span className="text-3xl font-black text-skin-text">{milestones.filter(m => !m.isPast).length}</span>
                   </div>
                   <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-full"><Calendar size={18}/></div>
               </div>
-              <div className="text-[10px] text-skin-muted font-bold">Upcoming Moments</div>
-          </div>
+              <div className="flex justify-between items-center w-full">
+                  <div className="text-[10px] text-skin-muted font-bold">Upcoming Moments</div>
+                  <ChevronRight size={14} className="text-skin-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+          </button>
 
-           <div className="bg-skin-card/50 backdrop-blur-xl p-5 rounded-[1.8rem] border border-white/20 shadow-sm flex flex-col justify-between h-32 group hover:bg-skin-card/70 transition-colors">
-              <div className="flex justify-between items-start">
+           <button 
+            onClick={() => onViewEvents('math')}
+            className="bg-skin-card/50 backdrop-blur-xl p-5 rounded-[1.8rem] border border-white/20 shadow-sm flex flex-col justify-between h-32 group hover:bg-skin-card/70 transition-all hover:scale-[1.02] text-left"
+           >
+              <div className="flex justify-between items-start w-full">
                   <div className="flex flex-col">
-                     <span className="text-xs font-bold text-amber-500 uppercase tracking-wider mb-1">Math</span>
+                     <span className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">Math</span>
                      <span className="text-3xl font-black text-skin-text">{milestones.filter(m => m.category === MilestoneCategory.Math).length}</span>
                   </div>
-                  <div className="p-2 bg-amber-500/10 text-amber-500 rounded-full"><PieIcon size={18}/></div>
+                  <div className="p-2 bg-amber-600/10 text-amber-600 rounded-full"><PieIcon size={18}/></div>
               </div>
-              <div className="text-[10px] text-skin-muted font-bold">Math Curiosities</div>
-          </div>
+              <div className="flex justify-between items-center w-full">
+                  <div className="text-[10px] text-skin-muted font-bold">Math Curiosities</div>
+                  <ChevronRight size={14} className="text-skin-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+          </button>
 
-          <div className="bg-skin-card/50 backdrop-blur-xl p-5 rounded-[1.8rem] border border-white/20 shadow-sm flex flex-col justify-between h-32 group hover:bg-skin-card/70 transition-colors">
-              <div className="flex justify-between items-start">
+          <button 
+            onClick={() => onViewEvents('this_year')}
+            className="bg-skin-card/50 backdrop-blur-xl p-5 rounded-[1.8rem] border border-white/20 shadow-sm flex flex-col justify-between h-32 group hover:bg-skin-card/70 transition-all hover:scale-[1.02] text-left"
+          >
+              <div className="flex justify-between items-start w-full">
                   <div className="flex flex-col">
                      <span className="text-xs font-bold text-rose-500 uppercase tracking-wider mb-1">This Year</span>
                      <span className="text-3xl font-black text-skin-text">{milestones.filter(m => m.date.getFullYear() === now.getFullYear()).length}</span>
                   </div>
                   <div className="p-2 bg-rose-500/10 text-rose-500 rounded-full"><Activity size={18}/></div>
               </div>
-              <div className="text-[10px] text-skin-muted font-bold">Events in {now.getFullYear()}</div>
-          </div>
+              <div className="flex justify-between items-center w-full">
+                  <div className="text-[10px] text-skin-muted font-bold">Events in {now.getFullYear()}</div>
+                  <ChevronRight size={14} className="text-skin-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+          </button>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { differenceInSeconds } from 'date-fns';
 import InputSection from './components/InputSection';
 import UpcomingShowcase from './components/UpcomingShowcase';
@@ -10,13 +10,16 @@ import NavBar from './components/NavBar';
 import SettingsView from './components/SettingsView';
 import ProfileView from './components/ProfileView';
 import AboutView from './components/AboutView';
-import ShareModal from './components/ShareModal';
+// ShareModal is now lazy loaded
+// import ShareModal from './components/ShareModal';
 import { LiveClockWidget, ZodiacWidget, DayBornWidget, YearProgressWidget } from './components/MosaicWidgets';
-import { CustomEvent, ThemeId, UserProfile, Milestone } from './types';
+import { CustomEvent, ThemeId, UserProfile, Milestone, MilestoneCategory } from './types';
 import { getAllMilestones } from './utils/generators';
 import { applyTheme } from './utils/themes';
-import { Info, Sparkles, CalendarRange, Download, ChevronRight } from 'lucide-react';
+import { Info, Sparkles, CalendarRange, ChevronRight } from 'lucide-react';
 import ShareButton from './components/ShareButton';
+
+const ShareModal = React.lazy(() => import('./components/ShareModal'));
 
 const STORAGE_KEY = 'life_milestones_data';
 
@@ -43,9 +46,18 @@ const App: React.FC = () => {
 
   const [currentView, setCurrentView] = useState<'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about'>('dashboard');
   
+  // List Filter State (for linking from visualizations)
+  const [listInitialFilter, setListInitialFilter] = useState<{ time?: 'all'|'future'|'past', category?: MilestoneCategory|'All', year?: number } | undefined>(undefined);
+
   // Share Modal State
   const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [shareData, setShareData] = useState<{title: string, text: string, milestone?: Milestone}>({ title: '', text: '' });
+  const [shareData, setShareData] = useState<{
+      title: string, 
+      text: string, 
+      milestone?: Milestone,
+      type?: 'milestone' | 'age' | 'progress' | 'zodiac' | 'clock',
+      extraData?: any
+  }>({ title: '', text: '' });
 
   // PWA State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -95,8 +107,9 @@ const App: React.FC = () => {
     setCustomEvents(prev => prev.filter(e => e.id !== id));
   };
 
-  const openShare = (title: string, text: string, milestone?: Milestone) => {
-      setShareData({ title, text, milestone });
+  // Expanded Share Handler
+  const openShare = (title: string, text: string, milestone?: Milestone, type: 'milestone'|'age'|'progress'|'zodiac'|'clock' = 'milestone', extraData?: any) => {
+      setShareData({ title, text, milestone, type, extraData });
       setShareModalOpen(true);
   };
 
@@ -114,6 +127,19 @@ const App: React.FC = () => {
               setDeferredPrompt(null);
           });
       }
+  };
+
+  const handleViewEventsFromViz = (filterType: 'all' | 'future' | 'past' | 'this_year' | 'math') => {
+      let filter: any = {};
+      if (filterType === 'this_year') {
+          filter = { year: new Date().getFullYear(), time: 'all' };
+      } else if (filterType === 'math') {
+          filter = { category: MilestoneCategory.Math };
+      } else {
+          filter = { time: filterType };
+      }
+      setListInitialFilter(filter);
+      setCurrentView('list');
   };
 
   // --- Derived Data ---
@@ -135,9 +161,9 @@ const App: React.FC = () => {
       case 'settings':
         return <SettingsView currentTheme={profile.theme} setTheme={(id: ThemeId) => updateProfile({ theme: id })} />;
       case 'visualizations':
-        return <VisualizationsPage milestones={milestones} dob={new Date(profile.dob)} />;
+        return <VisualizationsPage milestones={milestones} dob={new Date(profile.dob)} onViewEvents={handleViewEventsFromViz} />;
       case 'list':
-        return <MilestoneList milestones={milestones} onShare={openShare} />; 
+        return <MilestoneList milestones={milestones} onShare={openShare} initialFilter={listInitialFilter} />; 
       case 'profile':
         return (
           <ProfileView 
@@ -184,7 +210,7 @@ const App: React.FC = () => {
 
                  {/* 3. Year Progress (1x1) */}
                  <div className="col-span-1 lg:col-span-1 min-h-[140px]">
-                     <YearProgressWidget />
+                     <YearProgressWidget onShare={(type, data) => openShare("Year Progress", "Check out my year progress", undefined, type as any, data)} />
                  </div>
 
                  {/* 4. Current Age (Stats) (2x1) */}
@@ -199,12 +225,12 @@ const App: React.FC = () => {
                  
                  {/* 6. Zodiac (1x1) */}
                  <div className="col-span-1 lg:col-span-1 min-h-[140px]">
-                     <ZodiacWidget dob={new Date(profile.dob)} />
+                     <ZodiacWidget dob={new Date(profile.dob)} onShare={(type, data) => openShare("My Zodiac", `I am a ${data.sign}`, undefined, 'zodiac', data)} />
                  </div>
 
                  {/* 7. Day Born (1x1) */}
                  <div className="col-span-1 lg:col-span-1 min-h-[140px]">
-                     <DayBornWidget dob={new Date(profile.dob)} />
+                     <DayBornWidget dob={new Date(profile.dob)} onShare={(type, data) => openShare("Born On", `I was born on a ${data.sign}`, undefined, 'zodiac', data)} />
                  </div>
 
              </div>
@@ -214,7 +240,10 @@ const App: React.FC = () => {
                 
                 {/* Year Stats Tile */}
                 <div 
-                    onClick={() => setCurrentView('list')}
+                    onClick={() => {
+                        setListInitialFilter({ year: new Date().getFullYear(), time: 'all' });
+                        setCurrentView('list');
+                    }}
                     className="bg-skin-card/40 backdrop-blur-2xl p-5 rounded-[2rem] shadow-lg border border-white/20 relative overflow-hidden group cursor-pointer hover:bg-skin-card/60 transition-colors"
                 >
                     <div className="absolute -right-6 -top-6 text-skin-text opacity-5 group-hover:opacity-10 transition-opacity">
@@ -286,16 +315,22 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen text-skin-text transition-colors duration-300">
       
-      {/* Share Modal */}
-      <ShareModal 
-        isOpen={shareModalOpen} 
-        onClose={() => setShareModalOpen(false)} 
-        title={shareData.title}
-        text={shareData.text}
-        milestone={shareData.milestone}
-        userProfile={profile}
-        allMilestones={milestones} 
-      />
+      {/* Share Modal - Lazy Loaded */}
+      <Suspense fallback={null}>
+        {shareModalOpen && (
+            <ShareModal 
+                isOpen={shareModalOpen} 
+                onClose={() => setShareModalOpen(false)} 
+                title={shareData.title}
+                text={shareData.text}
+                milestone={shareData.milestone}
+                cardType={shareData.type}
+                extraData={shareData.extraData}
+                userProfile={profile}
+                allMilestones={milestones} 
+            />
+        )}
+      </Suspense>
 
       <NavBar 
         currentView={currentView} 

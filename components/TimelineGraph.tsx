@@ -17,13 +17,13 @@ const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data = payload[0].payload as any; 
     return (
-      <div className="bg-skin-card/90 backdrop-blur-xl p-3 border border-white/20 shadow-xl rounded-xl text-sm max-w-[200px] z-50">
+      <div className="bg-skin-card/95 backdrop-blur-xl p-3 border border-white/20 shadow-2xl rounded-xl text-sm max-w-[200px] z-[60]" style={{ pointerEvents: 'none' }}>
         <div className="flex items-center gap-2 mb-1">
-             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: data.color }} />
+             <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: data.color, border: '2px solid white' }} />
              <p className="font-bold text-skin-text text-xs leading-tight">{data.title}</p>
         </div>
         <p className="text-skin-muted text-[10px] font-bold uppercase tracking-wide mb-2">{data.formattedDate}</p>
-        <p className="text-xs text-skin-muted opacity-80 leading-relaxed">{data.description}</p>
+        <p className="text-xs text-skin-muted opacity-90 leading-relaxed">{data.description}</p>
       </div>
     );
   }
@@ -156,6 +156,7 @@ const TimelineGraph: React.FC<Props> = ({ milestones, dob }) => {
             onMouseDown={(e) => e && setRefAreaLeft(Number(e.xValue))}
             onMouseMove={(e) => refAreaLeft !== null && e && setRefAreaRight(Number(e.xValue))}
             onMouseUp={zoom}
+            onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
             margin={{ top: 10, right: 10, bottom: 10, left: 0 }}
             >
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.2} />
@@ -182,8 +183,8 @@ const TimelineGraph: React.FC<Props> = ({ milestones, dob }) => {
                 axisLine={false}
                 tickLine={false}
             />
-            <ZAxis type="number" range={[40, 100]} />
-            <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3', strokeOpacity: 0.2 }} />
+            <ZAxis type="number" range={[50, 120]} />
+            <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3', strokeOpacity: 0.2 }} wrapperStyle={{ zIndex: 100 }} />
             
             {categoryNames.map((cat) => (
                 <Scatter 
@@ -192,6 +193,9 @@ const TimelineGraph: React.FC<Props> = ({ milestones, dob }) => {
                     data={data.filter(d => d.category === cat)} 
                     fill={data.find(d => d.category === cat)?.color || '#000'} 
                     shape="circle"
+                    stroke="#ffffff"
+                    strokeWidth={2}
+                    opacity={0.9}
                 />
             ))}
 

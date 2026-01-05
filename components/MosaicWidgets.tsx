@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, Calendar, TrendingUp, Clock } from 'lucide-react';
-import { format, getDayOfYear, isLeapYear, differenceInDays } from 'date-fns';
+import { Sun, Moon, TrendingUp, Clock, Share2 } from 'lucide-react';
+import { format, getDayOfYear, isLeapYear } from 'date-fns';
 
 // --- Helper Functions ---
 
@@ -17,6 +17,10 @@ const getZodiacSign = (date: Date) => {
     return signs[month];
 };
 
+interface ShareProps {
+    onShare: (type: 'zodiac' | 'clock' | 'progress', data: any) => void;
+}
+
 // --- Widgets ---
 
 export const LiveClockWidget: React.FC = () => {
@@ -28,7 +32,7 @@ export const LiveClockWidget: React.FC = () => {
     }, []);
 
     return (
-        <div className="bg-skin-card/40 backdrop-blur-2xl p-5 rounded-[2rem] shadow-lg border border-white/20 flex flex-col justify-center items-center h-full relative overflow-hidden">
+        <div className="bg-skin-card/40 backdrop-blur-2xl p-5 rounded-[2rem] shadow-lg border border-white/20 flex flex-col justify-center items-center h-full relative overflow-hidden group">
              <div className="absolute top-0 left-0 w-full h-1 bg-skin-primary opacity-50"></div>
              <div className="text-[10px] font-bold uppercase tracking-widest text-skin-muted mb-1 flex items-center gap-1">
                 <Clock size={10} /> Live Time
@@ -44,10 +48,16 @@ export const LiveClockWidget: React.FC = () => {
     );
 };
 
-export const ZodiacWidget: React.FC<{ dob: Date }> = ({ dob }) => {
+export const ZodiacWidget: React.FC<{ dob: Date, onShare: (type: string, data: any) => void }> = ({ dob, onShare }) => {
     const sign = getZodiacSign(dob);
     return (
-        <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 backdrop-blur-xl p-5 rounded-[2rem] border border-white/20 flex flex-col items-center justify-center text-center h-full">
+        <div className="relative group bg-gradient-to-br from-indigo-500/10 to-purple-500/10 backdrop-blur-xl p-5 rounded-[2rem] border border-white/20 flex flex-col items-center justify-center text-center h-full">
+            <button 
+                onClick={() => onShare('zodiac', { sign, type: 'Zodiac' })}
+                className="absolute top-2 right-2 p-1.5 rounded-full bg-white/10 text-skin-muted opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
+            >
+                <Share2 size={12} />
+            </button>
             <div className="p-2 bg-indigo-500/20 text-indigo-500 rounded-full mb-2">
                 <Moon size={18} />
             </div>
@@ -57,10 +67,16 @@ export const ZodiacWidget: React.FC<{ dob: Date }> = ({ dob }) => {
     );
 };
 
-export const DayBornWidget: React.FC<{ dob: Date }> = ({ dob }) => {
+export const DayBornWidget: React.FC<{ dob: Date, onShare: (type: string, data: any) => void }> = ({ dob, onShare }) => {
     const dayName = format(dob, 'EEEE');
     return (
-        <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 backdrop-blur-xl p-5 rounded-[2rem] border border-white/20 flex flex-col items-center justify-center text-center h-full">
+        <div className="relative group bg-gradient-to-br from-amber-500/10 to-orange-500/10 backdrop-blur-xl p-5 rounded-[2rem] border border-white/20 flex flex-col items-center justify-center text-center h-full">
+            <button 
+                onClick={() => onShare('zodiac', { sign: dayName, type: 'Born On' })}
+                className="absolute top-2 right-2 p-1.5 rounded-full bg-white/10 text-skin-muted opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
+            >
+                <Share2 size={12} />
+            </button>
             <div className="p-2 bg-amber-500/20 text-amber-500 rounded-full mb-2">
                 <Sun size={18} />
             </div>
@@ -70,16 +86,22 @@ export const DayBornWidget: React.FC<{ dob: Date }> = ({ dob }) => {
     );
 };
 
-export const YearProgressWidget: React.FC = () => {
+export const YearProgressWidget: React.FC<{ onShare: (type: string, data: any) => void }> = ({ onShare }) => {
     const now = new Date();
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
     const isLeap = isLeapYear(now);
     const day = getDayOfYear(now);
     const totalDays = isLeap ? 366 : 365;
     const progress = (day / totalDays) * 100;
+    const daysLeft = totalDays - day;
 
     return (
-        <div className="bg-skin-card/40 backdrop-blur-2xl p-5 rounded-[2rem] shadow-lg border border-white/20 flex flex-col justify-center h-full">
+        <div className="relative group bg-skin-card/40 backdrop-blur-2xl p-5 rounded-[2rem] shadow-lg border border-white/20 flex flex-col justify-center h-full">
+             <button 
+                onClick={() => onShare('progress', { percent: progress, daysLeft, year: now.getFullYear() })}
+                className="absolute top-2 right-2 p-1.5 rounded-full bg-skin-input text-skin-muted opacity-0 group-hover:opacity-100 transition-opacity hover:bg-skin-border/50"
+            >
+                <Share2 size={12} />
+            </button>
              <div className="flex justify-between items-center mb-2">
                  <div className="flex items-center gap-2">
                      <TrendingUp size={16} className="text-emerald-500"/>
@@ -95,7 +117,7 @@ export const YearProgressWidget: React.FC = () => {
                  />
              </div>
              <div className="text-[10px] text-skin-muted font-bold mt-2 text-right">
-                 {totalDays - day} days left
+                 {daysLeft} days left
              </div>
         </div>
     );

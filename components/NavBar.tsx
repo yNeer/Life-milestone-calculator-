@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, BarChart2, List, Settings, UserCircle, Menu, X, Share2, Github, Info, Image, Video } from 'lucide-react';
+import { LayoutDashboard, BarChart2, List, Settings, UserCircle, Menu, X, Share2, Github, Info } from 'lucide-react';
 import Logo from './Logo';
 
 interface Props {
