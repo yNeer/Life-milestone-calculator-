@@ -198,24 +198,24 @@ const App: React.FC = () => {
              {/* MOSAIC GRID LAYOUT */}
              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">
                  
-                 {/* 1. Upcoming Showcase (2x2 on Desktop, Full on Mobile) */}
+                 {/* 1. Current Age (Stats) (Top Left - Prominent) */}
+                 <div className="col-span-2 lg:col-span-2 row-span-2">
+                     <CurrentAgeCard dob={profile.dob} tob={profile.tob} onShare={openShare} />
+                 </div>
+
+                 {/* 2. Upcoming Showcase (Top Right) */}
                  <div className="col-span-2 lg:col-span-2 row-span-2">
                      <UpcomingShowcase milestones={milestones} onShare={openShare} />
                  </div>
 
-                 {/* 2. Live Clock (1x1) */}
+                 {/* 3. Live Clock (1x1) */}
                  <div className="col-span-1 lg:col-span-1 min-h-[140px]">
                      <LiveClockWidget />
                  </div>
 
-                 {/* 3. Year Progress (1x1) */}
+                 {/* 4. Year Progress (1x1) */}
                  <div className="col-span-1 lg:col-span-1 min-h-[140px]">
                      <YearProgressWidget onShare={(type, data) => openShare("Year Progress", "Check out my year progress", undefined, type as any, data)} />
-                 </div>
-
-                 {/* 4. Current Age (Stats) (2x1) */}
-                 <div className="col-span-2 lg:col-span-1 row-span-2">
-                     <CurrentAgeCard dob={profile.dob} tob={profile.tob} onShare={openShare} />
                  </div>
 
                  {/* 5. Next Birthday (1x1 or 1x2 depending on content) */}
@@ -229,6 +229,7 @@ const App: React.FC = () => {
                  </div>
 
                  {/* 7. Day Born (1x1) */}
+                 {/* This was pushed out of alignment in previous, can fit here or new row */}
                  <div className="col-span-1 lg:col-span-1 min-h-[140px]">
                      <DayBornWidget dob={new Date(profile.dob)} onShare={(type, data) => openShare("Born On", `I was born on a ${data.sign}`, undefined, 'zodiac', data)} />
                  </div>

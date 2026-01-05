@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { 
   differenceInSeconds, differenceInMinutes, differenceInHours, 
-  differenceInDays, differenceInWeeks, differenceInMonths, differenceInYears, format
+  differenceInDays, differenceInWeeks, differenceInMonths, differenceInYears
 } from 'date-fns';
-import { Timer, Calendar, Clock, Hourglass, Hash, Flag } from 'lucide-react';
+import { Heart, Calendar, Clock, Activity, Flag, Layers, Zap, Hourglass, Video } from 'lucide-react';
 import ShareButton from './ShareButton';
 import { Milestone } from '../types';
 import { getGeneration, getCentury } from '../utils/generators';
@@ -50,79 +50,134 @@ const CurrentAgeCard: React.FC<Props> = ({ dob, tob, onShare }) => {
 
   const shareText = `I have been alive for ${stats.seconds.toLocaleString()} seconds! That's ${stats.years} years of life. (${generation}, Born in ${century})`;
 
-  const StatTile = ({ label, value, icon: Icon, color, subLabel }: any) => (
-    <div className="bg-skin-card/40 backdrop-blur-md p-3 rounded-2xl border border-white/20 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden group min-h-[90px]">
-      <div className={`absolute top-0 left-0 w-full h-1 bg-${color}-500 opacity-50`}></div>
-      <Icon className={`w-4 h-4 mb-1 text-${color}-500 opacity-70`} />
-      <div className="text-lg font-bold text-skin-text tabular-nums leading-none mb-1 break-all">
-        {value.toLocaleString()}
+  // Minimalist Tile Component
+  const StatTile = ({ label, value, icon: Icon, delay, colorClass }: { label: string, value: number, icon: any, delay: string, colorClass: string }) => (
+    <div 
+        className="relative overflow-hidden rounded-3xl p-4 flex flex-col items-center justify-center text-center shadow-sm border border-white/20 bg-skin-card/40 hover:bg-skin-card/60 transition-all group backdrop-blur-xl" 
+        style={{ animationDelay: delay }}
+    >
+      <div className={`absolute -right-3 -bottom-3 opacity-[0.08] transform rotate-12 group-hover:scale-110 transition-transform duration-500 ${colorClass}`}>
+         <Icon size={56} />
       </div>
-      <div className="text-[9px] text-skin-muted font-bold uppercase tracking-wide opacity-80">{label}</div>
-      {subLabel && <div className="text-[8px] text-skin-muted/60 font-medium">{subLabel}</div>}
+      
+      <div className="relative z-10 w-full">
+        <div className="text-xl md:text-2xl font-black text-skin-text tabular-nums leading-none mb-1 tracking-tight">
+          {value.toLocaleString()}
+        </div>
+        <div className="text-[10px] font-bold text-skin-muted uppercase tracking-widest opacity-80">{label}</div>
+      </div>
     </div>
   );
 
   return (
-    <div className="bg-skin-card/30 backdrop-blur-2xl rounded-[2rem] shadow-xl border border-white/20 p-5 flex flex-col gap-4 relative">
-        <div className="absolute top-4 right-4 z-10">
+    <div className="bg-skin-card/20 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-white/20 p-6 flex flex-col gap-6 relative overflow-hidden group h-full">
+      
+      {/* 72 BPM Heartbeat Animation (60s / 72 = 0.833s) */}
+      <style>{`
+        @keyframes lubdub {
+          0% { transform: scale(1); }
+          14% { transform: scale(1.15); }
+          28% { transform: scale(1); }
+          42% { transform: scale(1.15); }
+          70% { transform: scale(1); }
+          100% { transform: scale(1); }
+        }
+      `}</style>
+
+      {/* Modern Header */}
+      <div className="flex justify-between items-start relative z-10 px-1">
+        <div className="flex flex-col gap-1">
+            <h3 className="text-xs font-black text-skin-muted uppercase tracking-[0.2em] flex items-center gap-2">
+                <Activity size={14} className="text-rose-500" /> Total Existence
+            </h3>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+                 <div className="flex items-center gap-1.5 bg-skin-card/60 px-2.5 py-1 rounded-full border border-white/10 backdrop-blur-md shadow-sm">
+                    <Flag size={10} className="text-indigo-500"/>
+                    <span className="text-[10px] font-bold text-skin-text opacity-80">{generation}</span>
+                 </div>
+                 <div className="flex items-center gap-1.5 bg-skin-card/60 px-2.5 py-1 rounded-full border border-white/10 backdrop-blur-md shadow-sm">
+                    <Layers size={10} className="text-amber-500"/>
+                    <span className="text-[10px] font-bold text-skin-text opacity-80">{century}</span>
+                 </div>
+            </div>
+        </div>
+        <div className="flex items-center gap-2">
+             <button 
+                onClick={() => onShare("My Life Matrix", shareText, undefined, 'age', stats)}
+                className="p-2.5 rounded-full text-rose-500 bg-rose-500/10 hover:bg-rose-500 hover:text-white transition-all border border-rose-500/20 shadow-sm"
+                title="Create Video"
+             >
+                 <Video size={18} />
+             </button>
              <ShareButton 
                 title="My Life Matrix" 
                 text={shareText} 
-                className="text-skin-muted hover:text-skin-primary bg-skin-card/50" 
+                className="text-skin-muted hover:text-skin-primary hover:bg-skin-primary/10 shadow-sm border border-white/10 backdrop-blur-md transition-all rounded-full p-2.5" 
                 onClick={() => onShare("My Life Matrix", shareText, undefined, 'age', stats)}
              />
         </div>
+      </div>
 
-        {/* Identity Header */}
-        <div className="flex flex-col gap-2 pt-2">
-            <h3 className="text-sm font-bold text-skin-muted uppercase tracking-wider flex items-center gap-2">
-                <Hourglass className="w-4 h-4" /> Total Existence
-            </h3>
-            
-            <div className="flex flex-wrap gap-2">
-                <div className="flex items-center gap-2 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/20 px-3 py-1.5 rounded-full">
-                    <Flag size={12} className="text-purple-500" />
-                    <span className="text-xs font-bold text-skin-text">{generation}</span>
-                </div>
-                <div className="flex items-center gap-2 bg-skin-card/50 border border-skin-border/50 px-3 py-1.5 rounded-full">
-                    <Calendar size={12} className="text-skin-muted" />
-                    <span className="text-xs font-bold text-skin-muted">{century} Birth</span>
-                </div>
-            </div>
-        </div>
+      {/* Clean Mosaic Layout */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 relative z-10 flex-1">
+          
+          {/* Hero: Seconds (Clean & Airy) */}
+          <div className="col-span-2 row-span-2 bg-gradient-to-b from-white/40 to-white/10 dark:from-white/10 dark:to-transparent backdrop-blur-2xl p-6 rounded-[2rem] border border-white/30 shadow-sm flex flex-col items-center justify-center gap-3 text-center relative overflow-hidden group hover:scale-[1.01] transition-transform duration-500">
+              
+              <div className="absolute top-4 right-4 opacity-5">
+                 <Activity size={60} className="text-skin-text" />
+              </div>
 
-        {/* Mosaic Grid of Stats - All Units */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <div className="col-span-2 md:col-span-4 bg-skin-card/40 backdrop-blur-md p-4 rounded-2xl border border-white/20 flex flex-col items-center justify-center shadow-sm">
-                 <div className="text-xs font-bold text-skin-muted uppercase mb-1">Current Age</div>
-                 <div className="text-4xl font-black text-skin-text tabular-nums">
-                    {(stats.years / 10).toFixed(1)} <span className="text-lg font-bold text-skin-muted">Decades</span>
-                 </div>
-                 <div className="text-xs text-skin-muted/70 mt-1 font-mono">
-                    {stats.years} Years • {stats.days % 365} Days
-                 </div>
-            </div>
+              {/* Pulse Badge */}
+               <div className="flex items-center gap-2 bg-rose-500/5 px-3 py-1.5 rounded-full border border-rose-500/10 mb-2">
+                 <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
+                 <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest">Live • 72 BPM</span>
+              </div>
 
-            <StatTile label="Years" value={stats.years} icon={Calendar} color="rose" />
-            <StatTile label="Months" value={stats.months} icon={Calendar} color="emerald" />
-            <StatTile label="Weeks" value={stats.weeks} icon={Calendar} color="teal" />
-            <StatTile label="Days" value={stats.days} icon={Calendar} color="blue" />
-            
-            <StatTile label="Hours" value={stats.hours} icon={Clock} color="indigo" />
-            <StatTile label="Minutes" value={stats.minutes} icon={Clock} color="violet" />
-            <div className="col-span-2 md:col-span-2">
-                <div className="bg-skin-card/40 backdrop-blur-md p-3 rounded-2xl border border-white/20 flex flex-row items-center justify-between px-6 shadow-sm relative overflow-hidden h-full">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-fuchsia-500 opacity-50"></div>
-                    <div className="flex flex-col items-start">
-                        <div className="text-[10px] text-fuchsia-500 font-bold uppercase tracking-wide">Total Seconds</div>
-                        <div className="text-xl md:text-2xl font-black text-skin-text tabular-nums leading-none">
-                            {stats.seconds.toLocaleString()}
-                        </div>
-                    </div>
-                    <Timer className="w-6 h-6 text-fuchsia-500 opacity-50" />
+              {/* Heart Animation */}
+              <div className="relative mb-1">
+                 {/* Soft shadow heart */}
+                 <Heart size={64} className="text-rose-500/20 absolute top-1 left-1 blur-sm" style={{ animation: 'lubdub 0.833s infinite ease-in-out' }} />
+                 <Heart size={64} className="text-rose-500 fill-rose-500/10 drop-shadow-md" style={{ animation: 'lubdub 0.833s infinite ease-in-out' }} />
+              </div>
+
+              <div className="relative z-10">
+                <div className="text-4xl sm:text-5xl font-black text-skin-text tracking-tighter tabular-nums leading-none drop-shadow-sm">
+                    {stats.seconds.toLocaleString()}
                 </div>
-            </div>
-        </div>
+                <div className="text-[10px] font-bold text-skin-muted uppercase tracking-[0.3em] mt-2 opacity-60">Seconds Alive</div>
+              </div>
+          </div>
+
+          {/* Years (Wide Tile) */}
+          <div className="col-span-2 bg-gradient-to-r from-amber-50/40 to-orange-50/40 dark:from-amber-900/10 dark:to-orange-900/10 backdrop-blur-xl p-5 rounded-[1.5rem] border border-white/20 flex items-center justify-between shadow-sm group hover:bg-white/10 transition-colors">
+               <div className="flex flex-col">
+                  <div className="text-3xl font-black text-skin-text tabular-nums">{stats.years}</div>
+                  <div className="text-[10px] font-bold text-skin-muted uppercase tracking-wider opacity-80">Years</div>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/10">
+                  <Calendar size={20} />
+              </div>
+          </div>
+
+          {/* Standard Tiles - Clean Glass */}
+          <StatTile label="Months" value={stats.months} icon={Calendar} delay="100ms" colorClass="text-emerald-500" />
+          <StatTile label="Weeks" value={stats.weeks} icon={Layers} delay="200ms" colorClass="text-teal-500" />
+          <StatTile label="Days" value={stats.days} icon={Zap} delay="300ms" colorClass="text-blue-500" />
+          <StatTile label="Hours" value={stats.hours} icon={Hourglass} delay="400ms" colorClass="text-violet-500" />
+
+           {/* Minutes (Wide Tile) */}
+          <div className="col-span-2 bg-gradient-to-r from-indigo-50/40 to-blue-50/40 dark:from-indigo-900/10 dark:to-blue-900/10 backdrop-blur-xl p-5 rounded-[1.5rem] border border-white/20 flex items-center justify-between shadow-sm group hover:bg-white/10 transition-colors">
+               <div className="h-10 w-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/10">
+                  <Clock size={20} />
+              </div>
+              <div className="flex flex-col text-right">
+                  <div className="text-2xl font-black text-skin-text tabular-nums">{stats.minutes.toLocaleString()}</div>
+                  <div className="text-[10px] font-bold text-skin-muted uppercase tracking-wider opacity-80">Minutes</div>
+              </div>
+          </div>
+
+      </div>
     </div>
   );
 };
