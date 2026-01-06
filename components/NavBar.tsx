@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, BarChart2, List, Settings, UserCircle, Menu, X, Share2, Github, Info } from 'lucide-react';
+import { LayoutDashboard, BarChart2, List, Settings, UserCircle, Menu, X, Share2, Github, Info, Download, CheckCircle, Smartphone } from 'lucide-react';
 import Logo from './Logo';
 
 interface Props {
-  currentView: 'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about';
-  setView: (view: 'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about') => void;
+  currentView: 'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about' | 'install';
+  setView: (view: 'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about' | 'install') => void;
   onShareApp: () => void;
+  installPwa: () => void;
+  isPwaInstalled: boolean;
+  canInstallPwa: boolean;
 }
 
-const NavBar: React.FC<Props> = ({ currentView, setView, onShareApp }) => {
+const NavBar: React.FC<Props> = ({ currentView, setView, onShareApp, installPwa, isPwaInstalled, canInstallPwa }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Strict 4-button bottom layout
@@ -21,6 +24,13 @@ const NavBar: React.FC<Props> = ({ currentView, setView, onShareApp }) => {
 
   const handleNavClick = (view: any) => {
       setView(view);
+      setIsMenuOpen(false);
+  };
+
+  const handleInstallClick = () => {
+      // Instead of trying to install immediately in the menu which might fail or be confusing,
+      // take the user to the dedicated install page.
+      setView('install');
       setIsMenuOpen(false);
   };
 
@@ -84,6 +94,24 @@ const NavBar: React.FC<Props> = ({ currentView, setView, onShareApp }) => {
                  <div className="p-2 mt-2 mb-2 text-xs font-bold text-skin-muted uppercase tracking-wider border-b border-skin-border/50">
                     App Info
                  </div>
+
+                 {/* Install Button Logic */}
+                 {isPwaInstalled ? (
+                    <button 
+                        onClick={() => handleNavClick('install')}
+                        className="flex items-center gap-3 w-full p-3 rounded-xl mb-2 text-left text-sm font-bold bg-emerald-500/10 text-emerald-600 cursor-pointer"
+                    >
+                        <CheckCircle size={18} /> App Installed
+                    </button>
+                 ) : (
+                    <button 
+                        onClick={handleInstallClick}
+                        className="flex items-center gap-3 w-full p-3 rounded-xl mb-2 text-left text-sm font-bold bg-gradient-to-r from-skin-primary to-indigo-600 text-white shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    >
+                        <Download size={18} /> Install App
+                    </button>
+                 )}
+
                  <button 
                     onClick={() => handleNavClick('settings')}
                     className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-skin-input/50 text-left text-sm font-medium text-skin-text transition-colors"

@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { UserProfile, CustomEvent, CustomEventCategory } from '../types';
 import { themes } from '../utils/themes';
-import { User, Calendar, Clock, Plus, Trash2, Save, Camera, Upload, Download, CheckCircle, Smartphone, Palette } from 'lucide-react';
+import { User, Calendar, Clock, Plus, Trash2, Save, Camera, Upload, Download, CheckCircle, Smartphone, Palette, Grid, X, ChevronRight } from 'lucide-react';
+import Logo from './Logo';
 
 interface Props {
   profile: UserProfile;
@@ -21,6 +22,7 @@ const ProfileView: React.FC<Props> = ({
   const [newEventName, setNewEventName] = useState('');
   const [newEventDate, setNewEventDate] = useState('');
   const [isDirty, setIsDirty] = useState(false);
+  const [showWidgetHelp, setShowWidgetHelp] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (field: keyof UserProfile, value: string) => {
@@ -61,39 +63,99 @@ const ProfileView: React.FC<Props> = ({
   return (
     <div className="animate-in fade-in duration-300 space-y-6">
         
-        {/* Install App Section */}
-        {(canInstallPwa || isPwaInstalled) && (
-            <div className="bg-gradient-to-r from-skin-primary to-indigo-600 rounded-[2rem] shadow-lg p-6 text-white relative overflow-hidden border border-white/20">
-                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm">
-                            <Smartphone className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-lg">
-                                {isPwaInstalled ? "Enjoy your life events 🎉" : "Install App"}
-                            </h3>
-                            <p className="text-indigo-100 text-sm opacity-90">
-                                {isPwaInstalled 
-                                    ? "App is installed and ready to use offline." 
-                                    : "Add to your home screen for the best experience."}
-                            </p>
-                        </div>
+        {/* Widget Help Modal */}
+        {showWidgetHelp && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setShowWidgetHelp(false)}>
+                <div className="bg-skin-card p-6 rounded-[2rem] max-w-sm w-full shadow-2xl border border-white/20 relative" onClick={e => e.stopPropagation()}>
+                    <button className="absolute top-4 right-4 text-skin-muted hover:text-skin-text" onClick={() => setShowWidgetHelp(false)}><X size={20}/></button>
+                    <div className="w-12 h-12 bg-skin-primary/10 rounded-full flex items-center justify-center text-skin-primary mb-4">
+                        <Grid size={24} />
                     </div>
-                    
-                    {!isPwaInstalled && (
-                        <button 
-                            onClick={installPwa}
-                            className="bg-white text-skin-primary px-6 py-2.5 rounded-full font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform flex items-center gap-2"
-                        >
-                            <Download size={18} /> Install Now
-                        </button>
-                    )}
-                    {isPwaInstalled && (
-                        <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full backdrop-blur-md font-bold text-sm">
-                            <CheckCircle size={16} /> Installed
-                        </div>
-                    )}
+                    <h3 className="text-xl font-bold text-skin-text mb-2">Add to Home Screen</h3>
+                    <p className="text-skin-muted text-sm mb-4 leading-relaxed">
+                        To add the Life Milestones widget to your Android home screen:
+                    </p>
+                    <ol className="text-sm text-skin-text space-y-3 mb-6 pl-4 list-decimal marker:text-skin-primary font-medium">
+                        <li>Ensure the app is <strong>Installed</strong>.</li>
+                        <li>Go to your home screen.</li>
+                        <li><strong>Long press</strong> the Life Milestones app icon.</li>
+                        <li>Tap <strong>Widgets</strong> in the popup menu.</li>
+                        <li>Drag your preferred widget (Total Existence, Countdown, or List) to your screen.</li>
+                    </ol>
+                    <button onClick={() => setShowWidgetHelp(false)} className="w-full py-3 bg-skin-primary text-white font-bold rounded-xl">Got it</button>
+                </div>
+            </div>
+        )}
+
+        {/* Install App Section - Always visible to promote app */}
+        <div className="bg-gradient-to-br from-skin-primary to-violet-600 rounded-[2rem] shadow-xl p-6 text-white relative overflow-hidden border border-white/20 group">
+            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity"></div>
+            <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
+            
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                    <div className="bg-white p-3.5 rounded-2xl shadow-lg shadow-black/10 flex-shrink-0 transform group-hover:scale-105 transition-transform duration-500">
+                        <Logo className="w-10 h-10" />
+                    </div>
+                    <div className="text-center md:text-left">
+                        <h3 className="font-black text-xl tracking-tight leading-tight">
+                            Life Milestones
+                        </h3>
+                        <p className="text-indigo-100 text-sm font-medium opacity-90 mt-0.5">
+                            {isPwaInstalled 
+                                ? "App is installed & ready for offline use." 
+                                : "Install locally for the best experience."}
+                        </p>
+                    </div>
+                </div>
+                
+                {/* 
+                   Display Logic:
+                   1. If installable (deferredPrompt exists) AND not installed -> Show Install Button
+                   2. If installed -> Show Installed Badge
+                   3. If not installable (e.g. iOS or prompt blocked) AND not installed -> Show fallback info
+                */}
+                
+                {canInstallPwa && !isPwaInstalled && (
+                    <button 
+                        onClick={installPwa}
+                        className="bg-white text-skin-primary px-6 py-3 rounded-xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer z-20"
+                    >
+                        <Download size={20} />
+                        <span>Install App</span>
+                    </button>
+                )}
+                
+                {isPwaInstalled && (
+                    <div className="flex items-center gap-2 bg-white/20 px-5 py-2.5 rounded-xl backdrop-blur-md font-bold text-sm border border-white/10 shadow-sm">
+                        <CheckCircle size={18} className="text-emerald-300" />
+                        <span>Installed</span>
+                    </div>
+                )}
+
+                {/* Fallback for environments where programmatic install isn't possible (e.g. iOS) */}
+                {!canInstallPwa && !isPwaInstalled && (
+                    <div className="hidden md:flex items-center gap-2 opacity-80 text-xs font-medium bg-black/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                       <Smartphone size={14} /> Tap Share → Add to Home
+                    </div>
+                )}
+            </div>
+        </div>
+
+        {/* Widgets Section */}
+        {isPwaInstalled && (
+             <div className="bg-skin-card/40 backdrop-blur-2xl rounded-[2rem] shadow-xl border border-white/20 p-6 flex items-center justify-between group cursor-pointer hover:bg-skin-card/60 transition-colors" onClick={() => setShowWidgetHelp(true)}>
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-indigo-500/10 text-indigo-500 rounded-2xl">
+                        <Grid size={24} />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-skin-text">Android Widgets</h3>
+                        <p className="text-xs text-skin-muted font-bold uppercase tracking-wide">3 Styles Available</p>
+                    </div>
+                </div>
+                <div className="bg-skin-primary/10 text-skin-primary px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
+                    How to Add <ChevronRight size={16} />
                 </div>
             </div>
         )}

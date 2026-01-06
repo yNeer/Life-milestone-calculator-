@@ -2,32 +2,133 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#4f46e5" />
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="description" content="Calculate your life milestones in days, hours, and seconds. Discover mathematical curiosities about your age.">
     <title>Life Milestones Calculator</title>
+    <!-- Relative path for manifest is critical for sub-path deployments -->
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- Capture Install Prompt Immediately -->
+    <script>
+      window.pwaInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent the mini-infobar from appearing on mobile
+        e.preventDefault();
+        // Stash the event so it can be triggered later.
+        window.pwaInstallPrompt = e;
+        console.log('PWA Install Prompt captured globally');
+      });
+    </script>
+
+    <!-- Using Tailwind CDN for simplicity as per original design, though installing it via PostCSS is recommended for production -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'media', 
+        theme: {
+          extend: {
+            colors: {
+              skin: {
+                base: 'rgb(var(--color-base) / <alpha-value>)',
+                card: 'rgb(var(--color-card) / <alpha-value>)',
+                text: 'rgb(var(--color-text) / <alpha-value>)',
+                muted: 'rgb(var(--color-muted) / <alpha-value>)',
+                primary: 'rgb(var(--color-primary) / <alpha-value>)',
+                border: 'rgb(var(--color-border) / <alpha-value>)',
+                input: 'rgb(var(--color-input) / <alpha-value>)',
+              }
+            },
+            animation: {
+              'blob': 'blob 10s infinite',
+              'float': 'float 6s ease-in-out infinite',
+            },
+            keyframes: {
+              blob: {
+                '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                '100%': { transform: 'translate(0px, 0px) scale(1)' },
+              },
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-10px)' },
+              }
+            }
+          }
+        }
+      }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        /* Default to Light Theme RGBs */
+        --color-base: 240 244 248;
+        --color-card: 255 255 255;
+        --color-text: 15 23 42;
+        --color-muted: 100 116 139;
+        --color-primary: 79 70 229;
+        --color-border: 255 255 255;
+        --color-input: 241 245 249;
+      }
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background-color: rgb(var(--color-base));
+        color: rgb(var(--color-text));
+        transition: background-color 0.5s ease, color 0.5s ease;
+        overscroll-behavior-y: none;
+        
+        /* Deep Mesh Gradient for Glass Effect */
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(var(--color-primary), 0.25) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.2) 0px, transparent 50%),
+            radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.2) 0px, transparent 50%),
+            radial-gradient(at 0% 100%, rgba(139, 92, 246, 0.2) 0px, transparent 50%);
+        background-attachment: fixed;
+        background-size: cover;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      /* Hide Scrollbar for cleaner UI */
+      ::-webkit-scrollbar {
+        width: 0px;
+        background: transparent;
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "date-fns": "https://esm.sh/date-fns@^4.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "recharts": "https://esm.sh/recharts@^3.6.0",
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "vite": "https://esm.sh/vite@^7.3.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "date-fns": "https://esm.sh/date-fns@^4.1.0",
     "jspdf": "https://esm.sh/jspdf@^4.0.0",
+    "vite": "https://esm.sh/vite@^7.3.0",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "html-to-image": "https://esm.sh/html-to-image@^1.11.13",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3"
+    "html-to-image": "https://esm.sh/html-to-image@^1.11.13"
   }
 }
 </script>
 </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          // Use relative path for SW registration to support nested deployments
+          navigator.serviceWorker.register('./sw.js').then(registration => {
+            console.log('SW registered: ', registration);
+          }).catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+        });
+      }
+    </script>
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>

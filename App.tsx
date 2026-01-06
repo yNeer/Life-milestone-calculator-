@@ -9,6 +9,7 @@ import NavBar from './components/NavBar';
 import SettingsView from './components/SettingsView';
 import ProfileView from './components/ProfileView';
 import AboutView from './components/AboutView';
+import InstallPwaView from './components/InstallPwaView';
 // ShareModal is now lazy loaded
 // import ShareModal from './components/ShareModal';
 import { LiveClockWidget, ZodiacWidget, DayBornWidget, YearProgressWidget } from './components/MosaicWidgets';
@@ -42,7 +43,7 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved).customEvents.map((e: any) => ({...e, date: new Date(e.date)})) : [];
   });
 
-  const [currentView, setCurrentView] = useState<'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'visualizations' | 'list' | 'settings' | 'profile' | 'about' | 'install'>('dashboard');
   
   // List Filter State (for linking from visualizations)
   const [listInitialFilter, setListInitialFilter] = useState<{ time?: 'all'|'future'|'past', category?: MilestoneCategory|'All', year?: number } | undefined>(undefined);
@@ -78,17 +79,40 @@ const App: React.FC = () => {
 
   // PWA Install Event Listener
   useEffect(() => {
-    const handler = (e: any) => {
+    // 1. Check if the event was already fired before React mounted
+    if ((window as any).pwaInstallPrompt) {
+        setDeferredPrompt((window as any).pwaInstallPrompt);
+        console.log("PWA Prompt retrieved from global state");
+    }
+
+    // 2. Listen for future events
+    const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      // Update global just in case
+      (window as any).pwaInstallPrompt = e;
+      console.log("PWA Install Prompt captured in React");
     };
-    window.addEventListener('beforeinstallprompt', handler);
 
+    const handleAppInstalled = () => {
+      console.log("PWA Installed");
+      setIsAppInstalled(true);
+      setDeferredPrompt(null);
+      (window as any).pwaInstallPrompt = null;
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    // Check if already in standalone mode
     if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
       setIsAppInstalled(true);
     }
 
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
 
   // --- Handlers ---
@@ -115,15 +139,25 @@ const App: React.FC = () => {
       openShare("Life Milestones Calculator", "Discover the hidden mathematical poetry in your life's timeline. Calculate your next big moment!");
   };
 
-  const handleInstallApp = () => {
+  const handleInstallApp = async () => {
       if (deferredPrompt) {
-          deferredPrompt.prompt();
-          deferredPrompt.userChoice.then((choiceResult: any) => {
-              if (choiceResult.outcome === 'accepted') {
-                  setIsAppInstalled(true);
-              }
-              setDeferredPrompt(null);
-          });
+          try {
+            await deferredPrompt.prompt();
+            const choiceResult = await deferredPrompt.userChoice;
+            if (choiceResult.outcome === 'accepted') {
+                console.log('User accepted the install prompt');
+                setIsAppInstalled(true);
+            } else {
+                console.log('User dismissed the install prompt');
+            }
+          } catch (err) {
+            console.error('Install prompt error:', err);
+          }
+          setDeferredPrompt(null);
+          (window as any).pwaInstallPrompt = null;
+      } else {
+        // Redirect to install page if automatic prompt not available
+        setCurrentView('install');
       }
   };
 
@@ -170,6 +204,14 @@ const App: React.FC = () => {
             customEvents={customEvents} 
             addCustomEvent={addCustomEvent}
             removeCustomEvent={removeCustomEvent}
+            installPwa={handleInstallApp}
+            isPwaInstalled={isAppInstalled}
+            canInstallPwa={!!deferredPrompt}
+          />
+        );
+      case 'install':
+        return (
+          <InstallPwaView 
             installPwa={handleInstallApp}
             isPwaInstalled={isAppInstalled}
             canInstallPwa={!!deferredPrompt}
@@ -334,6 +376,9 @@ const App: React.FC = () => {
         currentView={currentView} 
         setView={setCurrentView} 
         onShareApp={handleShareApp}
+        installPwa={handleInstallApp}
+        isPwaInstalled={isAppInstalled}
+        canInstallPwa={!!deferredPrompt}
       />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-32">
