@@ -8,6 +8,25 @@ import ShareButton from './ShareButton';
 import { Milestone } from '../types';
 import { getGeneration, getCentury } from '../utils/generators';
 
+// Minimalist Tile Component
+const StatTile = React.memo(({ label, value, icon: Icon, delay, colorClass }: { label: string, value: number, icon: any, delay: string, colorClass: string }) => (
+  <div
+      className="relative overflow-hidden rounded-3xl p-4 flex flex-col items-center justify-center text-center shadow-sm border border-white/20 bg-skin-card/40 hover:bg-skin-card/60 transition-all group backdrop-blur-xl"
+      style={{ animationDelay: delay }}
+  >
+    <div className={`absolute -right-3 -bottom-3 opacity-[0.08] transform rotate-12 group-hover:scale-110 transition-transform duration-500 ${colorClass}`}>
+       <Icon size={56} />
+    </div>
+
+    <div className="relative z-10 w-full">
+      <div className="text-xl md:text-2xl font-black text-skin-text tabular-nums leading-none mb-1 tracking-tight">
+        {value.toLocaleString()}
+      </div>
+      <div className="text-[10px] font-bold text-skin-muted uppercase tracking-widest opacity-80">{label}</div>
+    </div>
+  </div>
+));
+
 interface Props {
   dob: string;
   tob: string;
@@ -49,25 +68,6 @@ const CurrentAgeCard: React.FC<Props> = ({ dob, tob, onShare }) => {
   }, [now, dob, tob]);
 
   const shareText = `I have been alive for ${stats.seconds.toLocaleString()} seconds! That's ${stats.years} years of life. (${generation}, Born in ${century})`;
-
-  // Minimalist Tile Component
-  const StatTile = ({ label, value, icon: Icon, delay, colorClass }: { label: string, value: number, icon: any, delay: string, colorClass: string }) => (
-    <div 
-        className="relative overflow-hidden rounded-3xl p-4 flex flex-col items-center justify-center text-center shadow-sm border border-white/20 bg-skin-card/40 hover:bg-skin-card/60 transition-all group backdrop-blur-xl" 
-        style={{ animationDelay: delay }}
-    >
-      <div className={`absolute -right-3 -bottom-3 opacity-[0.08] transform rotate-12 group-hover:scale-110 transition-transform duration-500 ${colorClass}`}>
-         <Icon size={56} />
-      </div>
-      
-      <div className="relative z-10 w-full">
-        <div className="text-xl md:text-2xl font-black text-skin-text tabular-nums leading-none mb-1 tracking-tight">
-          {value.toLocaleString()}
-        </div>
-        <div className="text-[10px] font-bold text-skin-muted uppercase tracking-widest opacity-80">{label}</div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="bg-skin-card/20 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-white/20 p-6 flex flex-col gap-6 relative overflow-hidden group h-full">
