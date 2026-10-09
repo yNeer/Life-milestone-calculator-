@@ -1,0 +1,3 @@
+## 2023-10-09 - Component Redefinition in `setInterval` Loop
+**Learning:** Defining a React component (like `StatTile`) inside another component (`CurrentAgeCard`) that updates frequently (e.g., via `setInterval` for a clock) causes React to unmount and remount the inner component on every tick. This is because the inner component function reference changes, causing React to treat it as a new component type, leading to DOM thrashing and high CPU usage.
+**Action:** Always define components outside of other components. Use `React.memo` for static or infrequently updating tiles to prevent unnecessary re-renders when the parent updates often.
