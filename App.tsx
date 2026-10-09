@@ -2,23 +2,22 @@ import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { differenceInSeconds } from 'date-fns';
 import UpcomingShowcase from './components/UpcomingShowcase';
 import NextBirthdayCard from './components/NextBirthdayCard';
-import MilestoneList from './components/MilestoneList';
-import VisualizationsPage from './components/VisualizationsPage';
 import CurrentAgeCard from './components/CurrentAgeCard';
 import NavBar from './components/NavBar';
-import SettingsView from './components/SettingsView';
-import ProfileView from './components/ProfileView';
-import AboutView from './components/AboutView';
-import InstallPwaView from './components/InstallPwaView';
-// ShareModal is now lazy loaded
-// import ShareModal from './components/ShareModal';
 import { LiveClockWidget, ZodiacWidget, DayBornWidget, YearProgressWidget } from './components/MosaicWidgets';
 import { CustomEvent, ThemeId, UserProfile, Milestone, MilestoneCategory } from './types';
 import { getAllMilestones } from './utils/generators';
 import { applyTheme } from './utils/themes';
-import { Info, Sparkles, CalendarRange, ChevronRight } from 'lucide-react';
+import { Info, Sparkles, CalendarRange, ChevronRight, Loader2, Camera } from 'lucide-react';
 
 const ShareModal = React.lazy(() => import('./components/ShareModal'));
+const MilestoneList = React.lazy(() => import('./components/MilestoneList'));
+const VisualizationsPage = React.lazy(() => import('./components/VisualizationsPage'));
+const SettingsView = React.lazy(() => import('./components/SettingsView'));
+const ProfileView = React.lazy(() => import('./components/ProfileView'));
+const AboutView = React.lazy(() => import('./components/AboutView'));
+const InstallPwaView = React.lazy(() => import('./components/InstallPwaView'));
+const CameraModal = React.lazy(() => import('./components/CameraModal'));
 
 const STORAGE_KEY = 'life_milestones_data';
 
@@ -57,6 +56,9 @@ const App: React.FC = () => {
       type?: 'milestone' | 'age' | 'progress' | 'zodiac' | 'clock',
       extraData?: any
   }>({ title: '', text: '' });
+
+  // Camera State
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   // PWA State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -189,15 +191,26 @@ const App: React.FC = () => {
   // --- Render Logic ---
 
   const renderContent = () => {
+    const renderLazyView = (ViewComponent: React.ReactNode) => (
+      <Suspense fallback={
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-skin-muted animate-pulse">
+          <Loader2 size={32} className="animate-spin mb-4 text-skin-primary" />
+          <p className="text-sm font-medium">Loading...</p>
+        </div>
+      }>
+        {ViewComponent}
+      </Suspense>
+    );
+
     switch (currentView) {
       case 'settings':
-        return <SettingsView currentTheme={profile.theme} setTheme={(id: ThemeId) => updateProfile({ theme: id })} />;
+        return renderLazyView(<SettingsView currentTheme={profile.theme} setTheme={(id: ThemeId) => updateProfile({ theme: id })} />);
       case 'visualizations':
-        return <VisualizationsPage milestones={milestones} dob={new Date(profile.dob)} onViewEvents={handleViewEventsFromViz} />;
+        return renderLazyView(<VisualizationsPage milestones={milestones} dob={new Date(profile.dob)} onViewEvents={handleViewEventsFromViz} />);
       case 'list':
-        return <MilestoneList milestones={milestones} onShare={openShare} initialFilter={listInitialFilter} />; 
+        return renderLazyView(<MilestoneList milestones={milestones} onShare={openShare} initialFilter={listInitialFilter} />);
       case 'profile':
-        return (
+        return renderLazyView(
           <ProfileView 
             profile={profile} 
             updateProfile={updateProfile} 
@@ -210,7 +223,7 @@ const App: React.FC = () => {
           />
         );
       case 'install':
-        return (
+        return renderLazyView(
           <InstallPwaView 
             installPwa={handleInstallApp}
             isPwaInstalled={isAppInstalled}
@@ -218,7 +231,7 @@ const App: React.FC = () => {
           />
         );
       case 'about':
-        return <AboutView />;
+        return renderLazyView(<AboutView />);
       case 'dashboard':
       default:
         return (
@@ -384,6 +397,30 @@ const App: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-32">
         {renderContent()}
       </div>
+
+      {/* Floating Camera Button on Dashboard */}
+      {currentView === 'dashboard' && (
+         <button
+            onClick={() => setIsCameraOpen(true)}
+            className="fixed bottom-24 right-6 z-40 bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 p-4 rounded-full shadow-[0_8px_32px_rgba(236,72,153,0.4)] text-white hover:scale-110 active:scale-95 transition-all duration-300"
+            aria-label="Open Camera"
+         >
+            <Camera size={28} />
+         </button>
+      )}
+
+      {/* Camera Modal - Lazy Loaded */}
+      <Suspense fallback={null}>
+         {isCameraOpen && (
+            <CameraModal
+               isOpen={isCameraOpen}
+               onClose={() => setIsCameraOpen(false)}
+               profile={profile}
+               milestones={milestones}
+            />
+         )}
+      </Suspense>
+
     </div>
   );
 };

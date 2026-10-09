@@ -116,7 +116,56 @@
 </script>
 </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="min-h-screen text-skin-text transition-colors duration-300">
+        <!-- Skeleton Top Nav -->
+        <div class="sticky top-0 z-40 bg-skin-base/80 backdrop-blur-lg border-b border-skin-border/50 px-4 py-3 flex justify-between items-center h-14">
+          <div class="flex items-center gap-3 animate-pulse">
+            <div class="w-8 h-8 rounded-xl bg-skin-card/40"></div>
+            <div class="w-32 h-6 rounded bg-skin-card/40 hidden sm:block"></div>
+          </div>
+          <div class="flex items-center gap-2 animate-pulse">
+             <div class="w-8 h-8 rounded-full bg-skin-card/40"></div>
+          </div>
+        </div>
+
+        <!-- Skeleton Main Content -->
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-32">
+          <div class="flex flex-col gap-5 animate-pulse">
+
+            <!-- Skeleton Header -->
+            <div class="flex items-center justify-between px-2 mb-2">
+               <div>
+                  <div class="h-6 w-48 bg-skin-card/60 rounded mb-2"></div>
+                  <div class="h-4 w-32 bg-skin-card/40 rounded"></div>
+               </div>
+               <div class="w-10 h-10 rounded-full bg-skin-card/50"></div>
+            </div>
+
+            <!-- Skeleton Grid -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">
+                <div class="col-span-2 lg:col-span-2 row-span-2 bg-skin-card/40 rounded-[2rem] h-[300px]"></div>
+                <div class="col-span-2 lg:col-span-2 row-span-2 bg-skin-card/40 rounded-[2rem] h-[300px]"></div>
+                <div class="col-span-1 lg:col-span-1 min-h-[140px] bg-skin-card/40 rounded-[2rem]"></div>
+                <div class="col-span-1 lg:col-span-1 min-h-[140px] bg-skin-card/40 rounded-[2rem]"></div>
+                <div class="col-span-2 lg:col-span-1 min-h-[200px] bg-skin-card/40 rounded-[2rem]"></div>
+                <div class="col-span-1 lg:col-span-1 min-h-[140px] bg-skin-card/40 rounded-[2rem]"></div>
+                <div class="col-span-1 lg:col-span-1 min-h-[140px] bg-skin-card/40 rounded-[2rem]"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Skeleton Bottom Nav -->
+        <div class="fixed bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none px-4">
+          <div class="bg-skin-card/80 backdrop-blur-2xl border border-white/20 shadow-2xl rounded-full px-2 py-2 flex items-center gap-1 sm:gap-2 max-w-md w-full justify-between sm:justify-center h-16 animate-pulse">
+             <div class="flex-1 sm:flex-none w-12 h-12 rounded-full bg-skin-card/40"></div>
+             <div class="flex-1 sm:flex-none w-12 h-12 rounded-full bg-skin-card/40"></div>
+             <div class="flex-1 sm:flex-none w-12 h-12 rounded-full bg-skin-card/40"></div>
+             <div class="flex-1 sm:flex-none w-12 h-12 rounded-full bg-skin-card/40"></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

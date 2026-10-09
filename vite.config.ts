@@ -7,4 +7,7 @@ export default defineConfig({
   // This ensures assets use relative paths (e.g., "./assets/...")
   // preventing 404 errors when deployed to subdirectories like GitHub Pages.
   base: './',
+  build: {
+    outDir: 'build',
+  },
 });

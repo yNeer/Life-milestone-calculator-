@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, BarChart2, List, Settings, UserCircle, Menu, X, Share2, Github, Info, Download, CheckCircle, Smartphone } from 'lucide-react';
+import { LayoutDashboard, BarChart2, List, Settings, UserCircle, Menu, X, Share2, Github, Info, Download, CheckCircle } from 'lucide-react';
 import Logo from './Logo';
 
 interface Props {
@@ -11,7 +11,7 @@ interface Props {
   canInstallPwa: boolean;
 }
 
-const NavBar: React.FC<Props> = ({ currentView, setView, onShareApp, installPwa, isPwaInstalled, canInstallPwa }) => {
+const NavBar: React.FC<Props> = ({ currentView, setView, onShareApp, isPwaInstalled }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Strict 4-button bottom layout
